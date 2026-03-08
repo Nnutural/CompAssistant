@@ -1,38 +1,53 @@
+﻿from __future__ import annotations
+
+from pydantic import BaseModel, Field
+
+from app.agents.runtime_tools import build_critic_assessment, build_critic_findings, build_critic_tools, resolve_topic
 from app.schemas.research_runtime import AgentTaskEnvelope, FindingItem, ResearchLedger
+
+try:
+    from agents import Agent
+except ImportError:
+    Agent = None
+
+
+class CriticOutput(BaseModel):
+    agent: str = 'critic'
+    assessment: dict[str, str]
+    findings: list[FindingItem]
+    notes: list[str] = Field(default_factory=list)
 
 
 class CriticAgent:
-    name = "critic"
+    name = 'critic'
 
-    # Phase 3: replace heuristic critique with real model-based assessment.
+    # Phase 3 fallback path. This stays deterministic for local testing without the SDK.
     def run(self, task: AgentTaskEnvelope, ledger: ResearchLedger, trend_result: dict, evidence_result: dict) -> dict:
-        evidence_refs = [item.evidence_id for item in evidence_result["evidence"][:3]]
-        novelty_note = "novelty：把运行时契约、Ledger 写回和 API 演示固定在同一条离线链路中。"
-        feasibility_note = "feasibility：当前方案仅依赖本地 JSON 持久化与 FastAPI，落地成本低。"
-        risk_note = "risk：当前全部为 mock agent，后续接入真实 Agents SDK 时需要补充调度与错误恢复。"
-
-        findings = [
-            FindingItem(
-                finding_id=f"{task.task_id}-finding-1",
-                claim="当前离线运行时骨架适合作为 Phase 2 演示基线。",
-                evidence_refs=evidence_refs,
-                confidence="high",
-            ),
-            FindingItem(
-                finding_id=f"{task.task_id}-finding-2",
-                claim="Research Ledger 可以作为任务轨迹、来源和证据的统一写回容器。",
-                evidence_refs=evidence_refs,
-                confidence="high",
-            ),
-        ]
-
+        evidence_ids = [item.evidence_id for item in evidence_result.get('evidence', [])]
+        assessment = build_critic_assessment(resolve_topic(task, ledger), len(trend_result.get('directions', [])), len(evidence_ids))
+        findings = build_critic_findings(task.task_id, evidence_ids)
         return {
-            "agent": self.name,
-            "assessment": {
-                "novelty": novelty_note,
-                "feasibility": feasibility_note,
-                "risk": risk_note,
-            },
-            "findings": findings,
-            "notes": [novelty_note, feasibility_note, risk_note],
+            'agent': self.name,
+            'assessment': assessment,
+            'findings': findings,
+            'notes': list(assessment.values()),
         }
+
+
+def build_critic_agent(model: str):
+    if Agent is None:
+        raise RuntimeError('openai-agents is not installed')
+
+    return Agent(
+        name='critic',
+        model=model,
+        tools=build_critic_tools(),
+        output_type=CriticOutput,
+        instructions=(
+            'You are Critic, a specialist that evaluates novelty, feasibility, and risk for the current research runtime output. '
+            'You must call the score_runtime_output tool exactly once and ground your final output in that tool result. '
+            'Return only structured output that matches CriticOutput. '
+            'Do not claim external validation. '
+            'Phase 4 extension point: enrich this agent with stronger evidence review and provenance-aware critique.'
+        ),
+    )

@@ -1,49 +1,52 @@
-from datetime import datetime, timezone
-from typing import List
+﻿from __future__ import annotations
 
+from pydantic import BaseModel, Field
+
+from app.agents.runtime_tools import build_evidence_tools, build_source_and_evidence_records
 from app.schemas.research_runtime import AgentTaskEnvelope, EvidenceRecord, ResearchLedger, SourceRecord
+
+try:
+    from agents import Agent
+except ImportError:
+    Agent = None
+
+
+class EvidenceScoutOutput(BaseModel):
+    agent: str = 'evidence-scout'
+    sources: list[SourceRecord]
+    evidence: list[EvidenceRecord]
+    notes: list[str] = Field(default_factory=list)
 
 
 class EvidenceScoutAgent:
-    name = "evidence-scout"
+    name = 'evidence-scout'
 
-    # Phase 3: replace deterministic evidence fabrication with real retrieval/extraction.
+    # Phase 3 fallback path. This stays offline and deterministic for local testing.
     def run(self, task: AgentTaskEnvelope, ledger: ResearchLedger, trend_result: dict) -> dict:
-        timestamp = datetime.now(timezone.utc)
-        directions: List[str] = trend_result["directions"]
-        sources: List[SourceRecord] = []
-        evidence_items: List[EvidenceRecord] = []
-
-        for index, direction in enumerate(directions, start=1):
-            source_id = f"{task.task_id}-source-{index}"
-            source = SourceRecord(
-                source_id=source_id,
-                source_type="note",
-                title=f"{direction} 的 mock 来源",
-                locator=f"mock://research-runtime/{task.task_id}/source/{index}",
-                credibility="medium",
-                captured_by=self.name,
-                tags=["mock", "phase2", "offline"],
-            )
-            sources.append(source)
-
-            for sub_index in range(1, 3):
-                evidence_id = f"{task.task_id}-evidence-{index}-{sub_index}"
-                evidence_items.append(
-                    EvidenceRecord(
-                        evidence_id=evidence_id,
-                        source_id=source_id,
-                        claim=f"{direction} 需要可复现的结构化输入输出。",
-                        excerpt=f"Mock evidence {sub_index} for {direction}：优先固定契约、Ledger 写回与测试路径。",
-                        captured_by=self.name,
-                        captured_at=timestamp,
-                        related_task_id=task.task_id,
-                    )
-                )
-
+        directions = list(trend_result.get('directions', []))
+        sources, evidence_items = build_source_and_evidence_records(task, directions, self.name)
         return {
-            "agent": self.name,
-            "sources": sources,
-            "evidence": evidence_items,
-            "notes": [f"基于 {len(directions)} 个方向生成了 {len(evidence_items)} 条 mock evidence。"],
+            'agent': self.name,
+            'sources': sources,
+            'evidence': evidence_items,
+            'notes': [f'Generated {len(evidence_items)} offline evidence records from {len(directions)} directions.'],
         }
+
+
+def build_evidence_scout_agent(model: str):
+    if Agent is None:
+        raise RuntimeError('openai-agents is not installed')
+
+    return Agent(
+        name='evidence-scout',
+        model=model,
+        tools=build_evidence_tools(),
+        output_type=EvidenceScoutOutput,
+        instructions=(
+            'You are EvidenceScout, a specialist that turns provided directions into structured local source and evidence records. '
+            'You must call the build_evidence_seed tool exactly once and keep the final answer grounded in that tool output. '
+            'Return only structured output that matches EvidenceScoutOutput. '
+            'Do not claim network access or external retrieval. '
+            'Phase 4 extension point: replace the local evidence seed tool with real retrieval and extraction tools.'
+        ),
+    )
