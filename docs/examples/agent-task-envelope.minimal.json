@@ -1,0 +1,30 @@
+﻿{
+  "contract_version": "1.0",
+  "task_id": "task-research-plan-001",
+  "session_id": "session-20260308-001",
+  "task_type": "research_plan",
+  "requested_by": "user",
+  "objective": "围绕科研多智能体运行时契约制定 Phase 1 研究计划。",
+  "payload": {
+    "topic": "科研多智能体运行时契约",
+    "deliverable": "phase-1-contracts"
+  },
+  "context_refs": [
+    {
+      "kind": "schema",
+      "ref": "docs/schemas/agent-task-envelope.schema.json",
+      "title": "任务契约"
+    }
+  ],
+  "constraints": [
+    "不要实现真实模型调用",
+    "保持现有 competitions API 不变"
+  ],
+  "expected_output": {
+    "format": "json",
+    "schema_ref": "docs/schemas/research-ledger.schema.json",
+    "sections": ["contracts", "tests"]
+  },
+  "dry_run": true,
+  "created_at": "2026-03-08T09:00:00Z"
+}

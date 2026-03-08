@@ -1,0 +1,34 @@
+{
+  "contract_version": "1.0",
+  "task_id": "task-phase2-runtime-001",
+  "produced_by": "manager",
+  "status": "completed",
+  "summary": "Manager 完成离线 mock research runtime 运行：生成 3 个候选方向，沉淀 6 条证据，并输出批判性总结。",
+  "findings": [
+    {
+      "finding_id": "task-phase2-runtime-001-finding-1",
+      "claim": "当前离线运行时骨架适合作为 Phase 2 演示基线。",
+      "evidence_refs": ["task-phase2-runtime-001-evidence-1-1", "task-phase2-runtime-001-evidence-1-2"],
+      "confidence": "high"
+    }
+  ],
+  "changed_paths": [
+    "backend/data/research_ledgers/ledger-session-phase2-001.json"
+  ],
+  "artifacts": [
+    {
+      "kind": "report",
+      "ref": "mock://research-runtime/ledger-session-phase2-001/result/task-phase2-runtime-001",
+      "title": "离线 mock research runtime 结果"
+    },
+    {
+      "kind": "ledger_entry",
+      "ref": "ledger-session-phase2-001",
+      "title": "Research Ledger 条目"
+    }
+  ],
+  "follow_up_items": [
+    "Phase 3 可将 mock agents 替换为真实 Agents SDK 编排。"
+  ],
+  "completed_at": "2026-03-08T10:05:00Z"
+}

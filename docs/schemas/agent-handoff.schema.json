@@ -2,60 +2,137 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://compassistant.local/schemas/agent-handoff.schema.json",
   "title": "AgentHandoff",
+  "description": "科研多智能体运行时中的任务交接契约。",
   "type": "object",
   "additionalProperties": false,
   "required": [
+    "contract_version",
     "handoff_id",
+    "task_id",
     "from_agent",
     "to_agent",
     "objective",
     "input_refs"
   ],
   "properties": {
+    "contract_version": {
+      "const": "1.0",
+      "description": "契约版本号。"
+    },
     "handoff_id": {
       "type": "string",
-      "description": "Unique identifier for a handoff event."
+      "minLength": 1,
+      "description": "交接事件唯一标识。"
+    },
+    "task_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "关联任务标识。"
     },
     "from_agent": {
       "type": "string",
-      "description": "Logical sender name."
+      "minLength": 1,
+      "description": "发起交接的智能体名称。"
     },
     "to_agent": {
       "type": "string",
-      "description": "Logical receiver name."
+      "minLength": 1,
+      "description": "接收交接的智能体名称。"
     },
     "objective": {
       "type": "string",
-      "description": "Single-sentence outcome expected from the receiving agent."
+      "minLength": 1,
+      "description": "接收方应完成的目标。"
+    },
+    "rationale": {
+      "type": "string",
+      "description": "发起交接的原因说明。"
     },
     "input_refs": {
       "type": "array",
-      "description": "Inputs handed over to the receiving agent.",
+      "description": "交接给接收方的输入引用。",
       "items": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": ["kind", "ref"],
-        "properties": {
-          "kind": {
-            "type": "string",
-            "enum": ["file", "doc", "schema", "task", "note"]
-          },
-          "ref": {
-            "type": "string"
-          }
-        }
+        "$ref": "#/$defs/referenceItem"
       }
     },
     "constraints": {
       "type": "array",
+      "description": "接收方执行期间必须遵守的约束。",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "carry_forward_notes": {
+      "type": "array",
+      "description": "交接时需要继续保留的说明或上下文要点。",
       "items": {
         "type": "string"
       },
       "default": []
     },
     "expected_output": {
+      "$ref": "#/$defs/expectedOutput"
+    },
+    "requested_at": {
       "type": "string",
-      "description": "Short note about the expected output format."
+      "format": "date-time",
+      "description": "交接发起时间。"
+    }
+  },
+  "$defs": {
+    "referenceItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "ref"],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": ["file", "doc", "schema", "dataset", "url", "note", "task", "ledger"],
+          "description": "引用对象类别。"
+        },
+        "ref": {
+          "type": "string",
+          "minLength": 1,
+          "description": "引用定位符。"
+        },
+        "title": {
+          "type": "string",
+          "description": "引用标题。"
+        },
+        "description": {
+          "type": "string",
+          "description": "引用说明。"
+        }
+      }
+    },
+    "expectedOutput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["format"],
+      "properties": {
+        "format": {
+          "type": "string",
+          "enum": ["json", "markdown", "text", "artifact_bundle"],
+          "description": "期望输出格式。"
+        },
+        "schema_ref": {
+          "type": "string",
+          "description": "输出若为结构化数据，可指定 schema 路径。"
+        },
+        "target_path": {
+          "type": "string",
+          "description": "可选目标产物路径。"
+        },
+        "sections": {
+          "type": "array",
+          "description": "建议输出的章节列表。",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        }
+      }
     }
   }
 }

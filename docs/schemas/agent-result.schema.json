@@ -2,30 +2,52 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://compassistant.local/schemas/agent-result.schema.json",
   "title": "AgentResult",
+  "description": "科研多智能体运行时中的标准结果契约。",
   "type": "object",
   "additionalProperties": false,
   "required": [
+    "contract_version",
     "task_id",
+    "produced_by",
     "status",
     "summary"
   ],
   "properties": {
+    "contract_version": {
+      "const": "1.0",
+      "description": "契约版本号。"
+    },
     "task_id": {
       "type": "string",
-      "description": "Identifier of the task that produced this result."
+      "minLength": 1,
+      "description": "结果关联的任务标识。"
+    },
+    "produced_by": {
+      "type": "string",
+      "minLength": 1,
+      "description": "产出结果的智能体名称。"
     },
     "status": {
       "type": "string",
-      "enum": ["draft", "completed", "blocked"],
-      "description": "Normalized completion state."
+      "enum": ["draft", "completed", "blocked", "needs_human"],
+      "description": "结果状态。"
     },
     "summary": {
       "type": "string",
-      "description": "Short human-readable outcome summary."
+      "minLength": 1,
+      "description": "结果摘要。"
+    },
+    "findings": {
+      "type": "array",
+      "description": "本次结果中整理出的关键发现。",
+      "items": {
+        "$ref": "#/$defs/findingItem"
+      },
+      "default": []
     },
     "changed_paths": {
       "type": "array",
-      "description": "Files or directories affected by the task, if any.",
+      "description": "任务影响到的文件路径。",
       "items": {
         "type": "string"
       },
@@ -33,30 +55,85 @@
     },
     "artifacts": {
       "type": "array",
-      "description": "Structured references produced by the task.",
+      "description": "产出的结构化工件引用。",
       "items": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": ["kind", "ref"],
-        "properties": {
-          "kind": {
-            "type": "string",
-            "enum": ["file", "doc", "schema", "report", "note"]
-          },
-          "ref": {
-            "type": "string"
-          }
-        }
+        "$ref": "#/$defs/artifactItem"
       },
       "default": []
     },
     "follow_up_items": {
       "type": "array",
-      "description": "Optional next steps that remain outside the current task.",
+      "description": "需要后续继续处理的事项。",
       "items": {
         "type": "string"
       },
       "default": []
+    },
+    "blockers": {
+      "type": "array",
+      "description": "导致任务受阻的因素。",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "结果确认时间。"
+    }
+  },
+  "$defs": {
+    "findingItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["claim"],
+      "properties": {
+        "finding_id": {
+          "type": "string",
+          "description": "发现项唯一标识。"
+        },
+        "claim": {
+          "type": "string",
+          "minLength": 1,
+          "description": "发现或结论本身。"
+        },
+        "evidence_refs": {
+          "type": "array",
+          "description": "支撑该发现的证据引用。",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "confidence": {
+          "type": "string",
+          "enum": ["low", "medium", "high"],
+          "default": "medium",
+          "description": "对该发现的置信度。"
+        }
+      }
+    },
+    "artifactItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "ref"],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": ["file", "doc", "schema", "report", "note", "dataset", "ledger_entry"],
+          "description": "产物类别。"
+        },
+        "ref": {
+          "type": "string",
+          "minLength": 1,
+          "description": "产物路径、URL 或逻辑标识。"
+        },
+        "title": {
+          "type": "string",
+          "description": "产物标题。"
+        }
+      }
     }
   }
 }

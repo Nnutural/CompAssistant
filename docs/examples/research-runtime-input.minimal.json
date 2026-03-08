@@ -1,0 +1,27 @@
+{
+  "contract_version": "1.0",
+  "task_id": "task-phase2-runtime-001",
+  "session_id": "session-phase2-001",
+  "task_type": "research_plan",
+  "requested_by": "user",
+  "priority": "normal",
+  "objective": "为科研多智能体运行时生成离线可运行的 Phase 2 mock runtime 骨架。",
+  "payload": {
+    "topic": "科研多智能体运行时骨架",
+    "research_question": "如何在不接入真实模型与外部 API 的前提下跑通一条 Research Ledger 链路？",
+    "included_topics": ["Ledger 仓储", "mock agents", "最小 API"],
+    "excluded_topics": ["真实 OpenAI 调用", "前端改造"],
+    "success_criteria": ["POST /api/research-runtime/run 可返回结构化结果", "Ledger 可读回"]
+  },
+  "constraints": [
+    "不要修改现有 competitions API 的外部行为",
+    "不要接入真实模型或联网搜索"
+  ],
+  "expected_output": {
+    "format": "json",
+    "schema_ref": "docs/schemas/agent-result.schema.json",
+    "sections": ["summary", "findings", "artifacts"]
+  },
+  "dry_run": false,
+  "created_at": "2026-03-08T10:00:00Z"
+}

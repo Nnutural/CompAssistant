@@ -1,0 +1,60 @@
+﻿{
+  "contract_version": "1.0",
+  "ledger_id": "ledger-20260308-001",
+  "session_id": "session-20260308-001",
+  "topic": "科研多智能体运行时契约",
+  "research_question": "如何在不改变现有竞赛功能的前提下定义 Phase 1 运行时契约？",
+  "status": "active",
+  "scope": {
+    "included_topics": ["任务契约", "交接契约", "结果契约", "Research Ledger"],
+    "excluded_topics": ["真实模型调用", "前端接线"],
+    "success_criteria": ["schema 可校验", "Pydantic 模型可解析示例"]
+  },
+  "task_history": [
+    {
+      "task_id": "task-research-plan-001",
+      "agent": "planner",
+      "status": "completed",
+      "summary": "完成初始契约设计",
+      "started_at": "2026-03-08T09:00:00Z",
+      "completed_at": "2026-03-08T09:20:00Z"
+    }
+  ],
+  "source_registry": [
+    {
+      "source_id": "source-001",
+      "source_type": "doc",
+      "title": "当前状态快照",
+      "locator": "docs/current-state.md",
+      "credibility": "high",
+      "captured_by": "planner",
+      "tags": ["repo", "baseline"]
+    }
+  ],
+  "evidence_log": [
+    {
+      "evidence_id": "evidence-001",
+      "source_id": "source-001",
+      "claim": "仓库尚未实现多智能体运行时。",
+      "excerpt": "当前尚未实现：仓储层、服务层、后台 worker、测试体系或智能体运行时。",
+      "captured_by": "planner",
+      "captured_at": "2026-03-08T09:10:00Z",
+      "related_task_id": "task-research-plan-001"
+    }
+  ],
+  "synthesis_notes": [
+    "先定义 contract，再考虑 runtime wiring。"
+  ],
+  "final_artifacts": [
+    {
+      "kind": "schema",
+      "ref": "docs/schemas/research-ledger.schema.json",
+      "title": "Research Ledger 契约"
+    }
+  ],
+  "open_questions": [
+    "Phase 2 是否需要引入调度状态机。"
+  ],
+  "created_at": "2026-03-08T09:00:00Z",
+  "updated_at": "2026-03-08T09:30:00Z"
+}

@@ -1,0 +1,26 @@
+﻿{
+  "contract_version": "1.0",
+  "task_id": "task-research-plan-001",
+  "produced_by": "contract-author",
+  "status": "completed",
+  "summary": "已完成 Phase 1 运行时契约草案。",
+  "findings": [
+    {
+      "finding_id": "finding-001",
+      "claim": "当前仓库尚未实现多智能体运行时。",
+      "evidence_refs": ["docs/current-state.md"],
+      "confidence": "high"
+    }
+  ],
+  "artifacts": [
+    {
+      "kind": "schema",
+      "ref": "docs/schemas/research-ledger.schema.json",
+      "title": "Research Ledger 契约"
+    }
+  ],
+  "follow_up_items": [
+    "下一阶段再补运行时服务层占位实现"
+  ],
+  "completed_at": "2026-03-08T09:30:00Z"
+}

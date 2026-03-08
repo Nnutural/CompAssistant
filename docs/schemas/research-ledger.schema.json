@@ -1,0 +1,296 @@
+﻿{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://compassistant.local/schemas/research-ledger.schema.json",
+  "title": "ResearchLedger",
+  "description": "科研多智能体运行时中的 Research Ledger 契约，用于记录任务、来源、证据与综合结论。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "ledger_id",
+    "session_id",
+    "topic",
+    "research_question",
+    "status",
+    "scope",
+    "task_history",
+    "source_registry",
+    "evidence_log",
+    "created_at"
+  ],
+  "properties": {
+    "contract_version": {
+      "const": "1.0",
+      "description": "契约版本号。"
+    },
+    "ledger_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Ledger 唯一标识。"
+    },
+    "session_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "关联研究会话标识。"
+    },
+    "topic": {
+      "type": "string",
+      "minLength": 1,
+      "description": "研究主题。"
+    },
+    "research_question": {
+      "type": "string",
+      "minLength": 1,
+      "description": "核心研究问题。"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["active", "paused", "completed", "archived"],
+      "description": "Ledger 当前状态。"
+    },
+    "owner": {
+      "type": "string",
+      "description": "Ledger 的逻辑负责人，可为用户、系统或智能体名称。"
+    },
+    "scope": {
+      "$ref": "#/$defs/researchScope"
+    },
+    "hypotheses": {
+      "type": "array",
+      "description": "当前阶段提出的研究假设。",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "task_history": {
+      "type": "array",
+      "description": "围绕本主题执行过的任务轨迹。",
+      "items": {
+        "$ref": "#/$defs/ledgerTaskEntry"
+      }
+    },
+    "source_registry": {
+      "type": "array",
+      "description": "当前纳入追踪的来源列表。",
+      "items": {
+        "$ref": "#/$defs/sourceRecord"
+      }
+    },
+    "evidence_log": {
+      "type": "array",
+      "description": "从来源中抽取并沉淀的证据记录。",
+      "items": {
+        "$ref": "#/$defs/evidenceRecord"
+      }
+    },
+    "synthesis_notes": {
+      "type": "array",
+      "description": "阶段性综合结论或总结笔记。",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "final_artifacts": {
+      "type": "array",
+      "description": "最终产出的工件引用。",
+      "items": {
+        "$ref": "#/$defs/artifactItem"
+      },
+      "default": []
+    },
+    "open_questions": {
+      "type": "array",
+      "description": "尚未解决的问题列表。",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Ledger 创建时间。"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Ledger 最近更新时间。"
+    }
+  },
+  "$defs": {
+    "researchScope": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "included_topics": {
+          "type": "array",
+          "description": "纳入研究范围的主题。",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "excluded_topics": {
+          "type": "array",
+          "description": "明确排除的主题。",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "success_criteria": {
+          "type": "array",
+          "description": "判定本轮研究完成的标准。",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        }
+      }
+    },
+    "ledgerTaskEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["task_id", "agent", "status"],
+      "properties": {
+        "task_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "任务标识。"
+        },
+        "agent": {
+          "type": "string",
+          "minLength": 1,
+          "description": "执行该任务的智能体名称。"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["queued", "running", "completed", "blocked", "cancelled"],
+          "description": "任务阶段状态。"
+        },
+        "summary": {
+          "type": "string",
+          "description": "任务阶段摘要。"
+        },
+        "started_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "任务开始时间。"
+        },
+        "completed_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "任务结束时间。"
+        }
+      }
+    },
+    "sourceRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_id", "source_type", "title", "locator"],
+      "properties": {
+        "source_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "来源标识。"
+        },
+        "source_type": {
+          "type": "string",
+          "enum": ["doc", "paper", "web", "dataset", "interview", "note", "code"],
+          "description": "来源类别。"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "description": "来源标题。"
+        },
+        "locator": {
+          "type": "string",
+          "minLength": 1,
+          "description": "来源定位信息，可为路径、URL 或其他引用。"
+        },
+        "credibility": {
+          "type": "string",
+          "enum": ["low", "medium", "high"],
+          "description": "对来源可信度的评估。"
+        },
+        "captured_by": {
+          "type": "string",
+          "description": "记录该来源的智能体名称。"
+        },
+        "tags": {
+          "type": "array",
+          "description": "来源标签。",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        }
+      }
+    },
+    "evidenceRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["evidence_id", "source_id", "claim", "excerpt", "captured_by"],
+      "properties": {
+        "evidence_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "证据标识。"
+        },
+        "source_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "证据来源标识。"
+        },
+        "claim": {
+          "type": "string",
+          "minLength": 1,
+          "description": "证据支持的结论或事实表述。"
+        },
+        "excerpt": {
+          "type": "string",
+          "minLength": 1,
+          "description": "摘录内容。"
+        },
+        "captured_by": {
+          "type": "string",
+          "minLength": 1,
+          "description": "提取该证据的智能体名称。"
+        },
+        "captured_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "证据提取时间。"
+        },
+        "related_task_id": {
+          "type": "string",
+          "description": "若有，可关联触发该证据的任务标识。"
+        }
+      }
+    },
+    "artifactItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "ref"],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": ["file", "doc", "schema", "report", "note", "dataset", "ledger_entry"],
+          "description": "产物类别。"
+        },
+        "ref": {
+          "type": "string",
+          "minLength": 1,
+          "description": "产物路径、URL 或逻辑标识。"
+        },
+        "title": {
+          "type": "string",
+          "description": "产物标题。"
+        }
+      }
+    }
+  }
+}

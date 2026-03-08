@@ -2,53 +2,156 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://compassistant.local/schemas/agent-task-envelope.schema.json",
   "title": "AgentTaskEnvelope",
+  "description": "科研多智能体运行时中的任务投递契约。",
   "type": "object",
   "additionalProperties": false,
   "required": [
+    "contract_version",
     "task_id",
+    "session_id",
     "task_type",
     "requested_by",
+    "objective",
     "payload"
   ],
   "properties": {
+    "contract_version": {
+      "const": "1.0",
+      "description": "契约版本号。"
+    },
     "task_id": {
       "type": "string",
-      "description": "Stable identifier for the task request."
+      "minLength": 1,
+      "description": "任务唯一标识。"
+    },
+    "session_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "本次研究运行会话的唯一标识。"
+    },
+    "workflow_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "可选的工作流标识，用于归并一组相关任务。"
     },
     "task_type": {
       "type": "string",
-      "description": "Short task classification such as summarize, inspect, scaffold, or validate."
+      "enum": [
+        "research_plan",
+        "source_discovery",
+        "evidence_extraction",
+        "synthesis",
+        "review",
+        "report_draft",
+        "schema_validation",
+        "general"
+      ],
+      "description": "任务类别。"
     },
     "requested_by": {
       "type": "string",
-      "enum": ["user", "codex", "system"],
-      "description": "Originator of the request."
+      "enum": ["user", "codex", "system", "agent"],
+      "description": "任务发起方。"
+    },
+    "priority": {
+      "type": "string",
+      "enum": ["low", "normal", "high"],
+      "default": "normal",
+      "description": "任务优先级。"
+    },
+    "objective": {
+      "type": "string",
+      "minLength": 1,
+      "description": "本任务的目标描述。"
     },
     "payload": {
       "type": "object",
-      "description": "Task-specific input body.",
+      "description": "任务载荷，保留给具体任务类型自由扩展。",
       "additionalProperties": true
     },
     "context_refs": {
       "type": "array",
-      "description": "Optional file or document references that the agent should inspect.",
+      "description": "本任务执行前应参考的上下文引用。",
       "items": {
-        "type": "string"
+        "$ref": "#/$defs/referenceItem"
       },
       "default": []
     },
     "constraints": {
       "type": "array",
-      "description": "Explicit execution limits attached to the task.",
+      "description": "任务执行过程中必须遵守的约束。",
       "items": {
         "type": "string"
       },
       "default": []
     },
+    "expected_output": {
+      "$ref": "#/$defs/expectedOutput"
+    },
     "dry_run": {
       "type": "boolean",
-      "description": "Whether the task is intended as planning or documentation only.",
-      "default": true
+      "default": true,
+      "description": "是否仅用于规划或文档输出。"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "任务创建时间。"
+    }
+  },
+  "$defs": {
+    "referenceItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "ref"],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": ["file", "doc", "schema", "dataset", "url", "note", "task", "ledger"],
+          "description": "引用对象类别。"
+        },
+        "ref": {
+          "type": "string",
+          "minLength": 1,
+          "description": "引用定位符，可为路径、URL 或逻辑 ID。"
+        },
+        "title": {
+          "type": "string",
+          "description": "引用对象的简短标题。"
+        },
+        "description": {
+          "type": "string",
+          "description": "引用对象的简短说明。"
+        }
+      }
+    },
+    "expectedOutput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["format"],
+      "properties": {
+        "format": {
+          "type": "string",
+          "enum": ["json", "markdown", "text", "artifact_bundle"],
+          "description": "期望输出格式。"
+        },
+        "schema_ref": {
+          "type": "string",
+          "description": "若输出为结构化数据，可指向目标 schema。"
+        },
+        "target_path": {
+          "type": "string",
+          "description": "若输出要落盘，可给出目标路径。"
+        },
+        "sections": {
+          "type": "array",
+          "description": "期望输出应包含的章节或分块。",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        }
+      }
     }
   }
 }
