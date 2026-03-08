@@ -1,0 +1,7 @@
+﻿interface:
+  display_name: "Agent Contract Scaffold"
+  short_description: "Define agent interfaces and schemas without runtime wiring."
+  default_prompt: "Use $agent-contract-scaffold to draft or update interface contracts for future agents."
+
+policy:
+  allow_implicit_invocation: true

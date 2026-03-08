@@ -1,0 +1,23 @@
+﻿# CompAssistant 的 Codex 项目配置样例。
+# 本文件仅用于说明预期结构，本身不会启用任何真实运行时。
+
+version = 1
+project_name = "CompAssistant"
+project_root = "."
+docs_dir = "docs"
+skills_dir = ".codex/skills"
+
+[policies]
+default_change_mode = "additive_only"
+allow_real_agent_runtime = false
+allow_real_openai_calls = false
+
+[backend]
+root = "backend"
+app_dir = "backend/app"
+env_example = "backend/.env.example"
+
+[frontend]
+root = "frontend"
+src_dir = "frontend/src"
+env_example = "frontend/.env.example"

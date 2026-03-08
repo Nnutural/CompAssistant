@@ -1,0 +1,62 @@
+﻿{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://compassistant.local/schemas/agent-result.schema.json",
+  "title": "AgentResult",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "task_id",
+    "status",
+    "summary"
+  ],
+  "properties": {
+    "task_id": {
+      "type": "string",
+      "description": "Identifier of the task that produced this result."
+    },
+    "status": {
+      "type": "string",
+      "enum": ["draft", "completed", "blocked"],
+      "description": "Normalized completion state."
+    },
+    "summary": {
+      "type": "string",
+      "description": "Short human-readable outcome summary."
+    },
+    "changed_paths": {
+      "type": "array",
+      "description": "Files or directories affected by the task, if any.",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "artifacts": {
+      "type": "array",
+      "description": "Structured references produced by the task.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kind", "ref"],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": ["file", "doc", "schema", "report", "note"]
+          },
+          "ref": {
+            "type": "string"
+          }
+        }
+      },
+      "default": []
+    },
+    "follow_up_items": {
+      "type": "array",
+      "description": "Optional next steps that remain outside the current task.",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    }
+  }
+}

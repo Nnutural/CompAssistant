@@ -1,0 +1,54 @@
+﻿{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://compassistant.local/schemas/agent-task-envelope.schema.json",
+  "title": "AgentTaskEnvelope",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "task_id",
+    "task_type",
+    "requested_by",
+    "payload"
+  ],
+  "properties": {
+    "task_id": {
+      "type": "string",
+      "description": "Stable identifier for the task request."
+    },
+    "task_type": {
+      "type": "string",
+      "description": "Short task classification such as summarize, inspect, scaffold, or validate."
+    },
+    "requested_by": {
+      "type": "string",
+      "enum": ["user", "codex", "system"],
+      "description": "Originator of the request."
+    },
+    "payload": {
+      "type": "object",
+      "description": "Task-specific input body.",
+      "additionalProperties": true
+    },
+    "context_refs": {
+      "type": "array",
+      "description": "Optional file or document references that the agent should inspect.",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "constraints": {
+      "type": "array",
+      "description": "Explicit execution limits attached to the task.",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "dry_run": {
+      "type": "boolean",
+      "description": "Whether the task is intended as planning or documentation only.",
+      "default": true
+    }
+  }
+}

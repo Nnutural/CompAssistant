@@ -1,0 +1,61 @@
+﻿{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://compassistant.local/schemas/agent-handoff.schema.json",
+  "title": "AgentHandoff",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "handoff_id",
+    "from_agent",
+    "to_agent",
+    "objective",
+    "input_refs"
+  ],
+  "properties": {
+    "handoff_id": {
+      "type": "string",
+      "description": "Unique identifier for a handoff event."
+    },
+    "from_agent": {
+      "type": "string",
+      "description": "Logical sender name."
+    },
+    "to_agent": {
+      "type": "string",
+      "description": "Logical receiver name."
+    },
+    "objective": {
+      "type": "string",
+      "description": "Single-sentence outcome expected from the receiving agent."
+    },
+    "input_refs": {
+      "type": "array",
+      "description": "Inputs handed over to the receiving agent.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kind", "ref"],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": ["file", "doc", "schema", "task", "note"]
+          },
+          "ref": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "constraints": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "expected_output": {
+      "type": "string",
+      "description": "Short note about the expected output format."
+    }
+  }
+}

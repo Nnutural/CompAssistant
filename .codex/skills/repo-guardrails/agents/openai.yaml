@@ -1,0 +1,7 @@
+﻿interface:
+  display_name: "Repo Guardrails"
+  short_description: "Preserve additive-only scaffolding boundaries in CompAssistant."
+  default_prompt: "Use $repo-guardrails to add non-invasive scaffolding or documentation to this repository."
+
+policy:
+  allow_implicit_invocation: true

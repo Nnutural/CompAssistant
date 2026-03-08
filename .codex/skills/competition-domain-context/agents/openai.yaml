@@ -1,0 +1,7 @@
+﻿interface:
+  display_name: "Competition Domain Context"
+  short_description: "Keep competition data and docs aligned with the current model."
+  default_prompt: "Use $competition-domain-context to inspect or document the current competition data model."
+
+policy:
+  allow_implicit_invocation: true
