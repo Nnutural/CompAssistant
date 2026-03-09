@@ -1,199 +1,148 @@
-# CompAssistant - 大学生竞赛 DDL 管理系统
+# CompAssistant
 
-一个简约、现代的大学生竞赛截止日期管理网站，参考 Apple 设计风格和 CCFDDL 的设计理念。
+CompAssistant 当前是一个以大学生竞赛助手为核心的前后端项目。
 
-## 功能特性
+仓库仍然保留原有的 `competitions.json` 数据源和 `competitions` API，同时已经补齐一套可本地运行的 Agent Runtime，用于把竞赛助手能力包装成可解释、可恢复、可轮询的后端契约层。
 
-- 📋 **竞赛列表**：清晰展示竞赛名称、截止时间、领域、难度和级别
-- 🔍 **智能筛选**：按竞赛领域、级别筛选，支持关键词搜索
-- 📅 **DDL 提醒**：自动计算剩余天数，区分"未开始"、"进行中"和"已截止"状态
-- 📖 **竞赛详情**：包含基本信息、简介、官网链接、参赛建议
-- 📚 **竞赛指导**：提供选赛建议、准备指南、常见问题等内容
-- 🎨 **简约设计**：简约风格的 UI，流畅的交互体验
+## 当前能力
 
-## 技术栈
+- 竞赛列表与详情接口仍然可用：`/api/competitions`、`/api/competitions/{id}`
+- Ark-only + `chat_completions` 真实模式仍然保留
+- mock runtime 仍然保留，并作为本地稳定回归基线
+- 当前主任务类型收敛为 3 类：
+  - `competition_recommendation`
+  - `competition_eligibility_check`
+  - `competition_timeline_plan`
+- legacy `research_plan` 路径仍保兼容，但不再作为前端主接入路径
+- 新增统一轮询式任务 API：
+  - `POST /api/agent/tasks`
+  - `GET /api/agent/tasks/{run_id}`
+  - `GET /api/agent/tasks/{run_id}/events`
+  - `GET /api/agent/tasks/{run_id}/artifacts`
 
-### 前端
+## 后端运行时概览
 
-- **Vue 3** - 渐进式 JavaScript 框架
-- **Vite** - 下一代前端构建工具
-- **Axios** - HTTP 客户端
+当前真实链路为：
 
-### 后端
+`FastAPI route -> ResearchRuntimeService -> mock manager / Ark-only Agents SDK runtime -> LedgerRepository`
 
-- **FastAPI** - 现代、高性能的 Python Web 框架
-- **Uvicorn** - ASGI 服务器
+Phase 4A 已经完成的核心增强包括：
 
-### 数据存储
+- 3 类竞赛任务主路径
+- 显式 run state machine
+- ledger events / artifacts / raw / repaired outputs
+- output repair / extraction / validation 三段式
+- 本地领域数据增强与工具层 grounding
 
-- **JSON** - 轻量级数据存储（`backend/data/competitions.json`）
+Phase 4B 在此基础上新增：
 
-## 项目结构
+- 面向前端轮询的 task/run API
+- 薄 DTO 与前端 types 对齐
+- 本地 evaluation dataset 与回归脚本
+- 前端最小 API client / types 占位
 
-```
-.
-├── frontend/                # 前端项目
-│   ├── src/
-│   │   ├── App.vue         # 主应用组件
-│   │   ├── main.js         # 入口文件
-│   │   └── components/
-│   │       ├── CompetitionList.vue  # 竞赛列表组件
-│   │       └── Guide.vue            # 竞赛指导组件
-│   ├── index.html
-│   ├── package.json
-│   └── vite.config.js
-│
-├── backend/                 # 后端项目
-│   ├── app/
-│   │   ├── main.py         # FastAPI 应用入口
-│   │   ├── core/
-│   │   │   └── config.py   # 配置文件
-│   │   ├── api/
-│   │   │   └── routes/
-│   │   │       └── competitions.py  # 竞赛接口
-│   │   └── schemas/
-│   │       └── competition.py       # 数据模型
-│   ├── data/
-│   │   └── competitions.json        # 竞赛数据
-│   └── requirements.txt
-│
-└── README.md
+## 目录
+
+```text
+CompAssistant/
+├─ backend/
+│  ├─ app/
+│  │  ├─ agents/
+│  │  ├─ api/routes/
+│  │  ├─ repositories/
+│  │  ├─ schemas/
+│  │  ├─ services/
+│  │  ├─ tests/
+│  │  └─ tools/
+│  ├─ data/
+│  │  ├─ competitions.json
+│  │  ├─ competitions_enriched.json
+│  │  ├─ eligibility_rules.json
+│  │  ├─ recommendation_rubric.json
+│  │  ├─ timeline_templates.json
+│  │  └─ evals/
+│  └─ scripts/run_eval.py
+├─ docs/
+└─ frontend/
+   └─ src/
+      ├─ api/agent.ts
+      ├─ types/agent.ts
+      └─ features/agent/
 ```
 
 ## 快速开始
 
-### 环境要求
+### 后端
 
-- Node.js 16+
-- Python 3.9+
+```bash
+cd backend
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+```
 
-### 安装依赖
-
-#### 前端
+### 前端
 
 ```bash
 cd frontend
 npm install
-```
-
-#### 后端
-
-```bash
-cd backend
-python3 -m venv .venv
-source .venv/bin/activate  # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-```
-
-### 启动项目
-
-#### 启动后端（端口 8000）
-
-```bash
-cd backend
-source .venv/bin/activate
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-```
-
-#### 启动前端（端口 3000）
-
-```bash
-cd frontend
 npm run dev
 ```
 
-### 访问应用
+## 主要 API
 
-打开浏览器访问：http://localhost:3000
+### 竞赛数据
 
-## API 接口
+- `GET /api/competitions`
+- `GET /api/competitions/{id}`
 
-### 获取所有竞赛
+### 新任务 API
 
+- `POST /api/agent/tasks`
+- `GET /api/agent/tasks/{run_id}`
+- `GET /api/agent/tasks/{run_id}/events`
+- `GET /api/agent/tasks/{run_id}/artifacts`
+
+### 旧兼容路由
+
+- `POST /api/research-runtime/run`
+- `GET /api/research-runtime/ledger/{ledger_id}`
+
+前端新接入应优先使用 `/api/agent/tasks/*`，不要直接绑定旧 `research-runtime` 路由。
+
+## 本地回归
+
+### 运行后端测试
+
+```bash
+backend\.venv\Scripts\python -m unittest discover -s backend/app/tests
 ```
-GET /api/competitions
+
+### 运行本地评测
+
+```bash
+backend\.venv\Scripts\python backend/scripts/run_eval.py --runtime-mode mock
 ```
 
-返回所有竞赛列表，按截止时间排序。
+如需 JSON 输出：
 
-### 获取单个竞赛
-
-```
-GET /api/competitions/{id}
+```bash
+backend\.venv\Scripts\python backend/scripts/run_eval.py --runtime-mode mock --json
 ```
 
-返回指定 ID 的竞赛详情。
+## 文档
 
-## 数据说明
+- `docs/current-state.md`
+- `docs/agent-runtime-overview.md`
+- `docs/task-types.md`
+- `docs/ledger-state-machine.md`
+- `docs/frontend-integration.md`
+- `docs/evaluation.md`
 
-竞赛数据存储在 `backend/data/competitions.json`，包含以下字段：
+## 当前边界
 
-- `id`: 竞赛唯一标识
-- `name`: 竞赛名称
-- `deadline`: 截止时间（ISO 8601 格式）
-- `field`: 竞赛领域（如"算法/编程"、"综合/创新创业"）
-- `difficulty`: 难度等级（简单/中等/困难）
-- `level`: 竞赛级别（S/A+/A/B+/B）
-- `description`: 竞赛简介
-- `suggestions`: 参赛建议（数组）
-- `links`: 相关链接（包含官网链接）
-
-### 添加新竞赛
-
-直接编辑 `backend/data/competitions.json`，按照现有格式添加新竞赛数据。后端会自动重载。
-
-## 竞赛级别说明
-
-- **S级**：国家级最高水平竞赛（如互联网+、挑战杯、ICPC）
-- **A+级**：国家级重点竞赛
-- **A级**：国家级竞赛
-- **B+级**：省市级重点竞赛
-- **B级**：省市级竞赛
-
-## 设计理念
-
-### UI 设计
-
-- 简约风格：现代、注重细节
-- 清晰的视觉层次和信息架构
-- 流畅的交互动画和过渡效果
-- 响应式设计，适配多种屏幕尺寸
-
-### 功能设计
-
-- 卡片式布局，信息一目了然
-- 智能筛选和搜索，快速定位目标竞赛
-- 详细的竞赛信息和参赛建议
-
-## 后续优化方向
-
-- [ ] 添加用户系统，支持个性化订阅
-- [ ] 邮件/微信提醒功能
-- [ ] 竞赛日历视图
-- [ ] 数据来源标注与更新记录
-- [ ] 自动爬取官方竞赛信息
-- [ ] 移动端 App
-- [ ] 竞赛标签系统
-- [ ] 用户评论与经验分享
-
-## 贡献指南
-
-欢迎提交 Issue 和 Pull Request！
-
-1. Fork 本仓库
-2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 提交 Pull Request
-
-## 许可证
-
-MIT License
-
-## 联系方式
-
-如有问题或建议，欢迎提交 Issue。
-
----
-
-**注意**：竞赛截止时间请以官方公告为准，本系统仅供参考。
+- 不引入 WebSearch、RAG、向量数据库、Redis、Celery
+- 不重写现有前端页面
+- 不替换 Ark-only 主逻辑
+- 不删除 mock fallback
