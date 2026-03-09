@@ -30,12 +30,20 @@ def main() -> int:
             f"passed={report.summary.passed_cases}",
             f"failed={report.summary.failed_cases}",
             f"warning_cases={report.summary.warning_cases}",
+            f"low_quality_cases={report.summary.low_quality_cases}",
+            f"avg_quality={report.summary.quality.average_score:.3f}",
         )
         for item in report.results:
             warning_text = f" warnings={len(item.warnings)}" if item.warnings else ""
             missing_text = f" missing={','.join(item.missing_fields)}" if item.missing_fields else ""
+            quality_text = f" quality={item.quality_score:.3f}/{item.quality_threshold:.3f}"
+            quality_fail_text = (
+                f" failed_checks={','.join(item.failed_quality_checks)}"
+                if item.failed_quality_checks
+                else ""
+            )
             print(
-                f"- {item.id}: passed={str(item.passed).lower()} status={item.status}{warning_text}{missing_text}"
+                f"- {item.id}: passed={str(item.passed).lower()} status={item.status}{quality_text}{warning_text}{missing_text}{quality_fail_text}"
             )
     return 0 if report.summary.failed_cases == 0 else 1
 

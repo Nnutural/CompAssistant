@@ -11,18 +11,33 @@ export type AgentTaskType =
   | 'schema_validation'
   | 'general'
 
-export type AgentTaskRunStatus = 'running' | 'completed' | 'failed' | 'awaiting_review'
+export type AgentTaskRunStatus =
+  | 'queued'
+  | 'running'
+  | 'completed'
+  | 'cancelled'
+  | 'failed'
+  | 'awaiting_review'
+export type AgentTaskControlAction =
+  | 'retry'
+  | 'cancel'
+  | 'review_accept'
+  | 'review_reject'
+  | 'review_annotate'
 
 export type AgentResultStatus = 'draft' | 'completed' | 'blocked' | 'needs_human'
 
 export type AgentRunState =
   | 'received'
+  | 'queued'
+  | 'running'
   | 'planning'
   | 'retrieving_local_context'
   | 'reasoning'
   | 'validating_output'
   | 'persisting_artifacts'
   | 'completed'
+  | 'cancelled'
   | 'failed'
   | 'awaiting_review'
 
@@ -64,6 +79,7 @@ export interface AgentTaskStatusResponse {
   elapsed_ms?: number | null
   event_count: number
   artifact_count: number
+  available_actions: AgentTaskControlAction[]
   created_at: string
   updated_at?: string | null
 }
@@ -103,6 +119,55 @@ export interface AgentTaskArtifactsResponse {
   task_type?: AgentTaskType | null
   current_state?: AgentRunState | null
   items: AgentTaskArtifactItem[]
+}
+
+export interface AgentTaskHistoryItem {
+  run_id: string
+  task_id: string
+  session_id: string
+  ledger_id: string
+  task_type?: AgentTaskType | null
+  status: AgentTaskRunStatus
+  current_state?: AgentRunState | null
+  result_status?: AgentResultStatus | null
+  result_summary?: string | null
+  artifact_count: number
+  has_artifacts: boolean
+  awaiting_review: boolean
+  used_mock_fallback: boolean
+  parent_run_id?: string | null
+  available_actions: AgentTaskControlAction[]
+  created_at: string
+  updated_at?: string | null
+}
+
+export interface AgentTaskHistoryResponse {
+  items: AgentTaskHistoryItem[]
+  total: number
+  limit: number
+  offset: number
+}
+
+export interface AgentTaskCancelRequest {
+  note?: string
+}
+
+export interface AgentTaskReviewRequest {
+  decision: 'accept' | 'reject' | 'annotate'
+  note?: string
+}
+
+export interface AgentTaskControlResponse {
+  action: AgentTaskControlAction
+  message: string
+  task: AgentTaskStatusResponse
+}
+
+export interface AgentTaskRetryResponse {
+  action: 'retry'
+  source_run_id: string
+  new_run: AgentTaskStatusResponse
+  message: string
 }
 
 export type AgentTaskSummary = AgentTaskStatusResponse

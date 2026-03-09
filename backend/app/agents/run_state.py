@@ -7,6 +7,7 @@ from pydantic import BaseModel
 
 from app.schemas.research_runtime import (
     AgentTaskEnvelope,
+    ControlRecord,
     ResearchLedger,
     RunEvent,
     RunState,
@@ -59,8 +60,15 @@ def transition_state(
     message: str,
     detail: dict[str, Any] | None = None,
 ) -> None:
+    if ledger.current_state in {"completed", "cancelled", "failed", "awaiting_review"} and state not in {
+        "completed",
+        "cancelled",
+        "failed",
+        "awaiting_review",
+    }:
+        return
     previous = ledger.current_state
-    if previous and previous != state and previous not in ("failed", "awaiting_review", "completed"):
+    if previous and previous != state and previous not in ("failed", "awaiting_review", "completed", "cancelled"):
         mark_state_completed(ledger, previous, actor=actor, message=f"{previous} completed.")
     ledger.current_state = state
     ledger.updated_at = utc_now()
@@ -191,6 +199,22 @@ def mark_review_required(
     append_event(ledger, state="awaiting_review", status="warning", actor=actor, message=message)
 
 
+def mark_cancelled(
+    ledger: ResearchLedger,
+    *,
+    actor: str,
+    message: str,
+    elapsed_ms: float | None = None,
+    detail: dict[str, Any] | None = None,
+) -> None:
+    if ledger.current_state and ledger.current_state not in ledger.completed_states:
+        mark_state_completed(ledger, ledger.current_state, actor=actor, message=f"{ledger.current_state} completed.")
+    ledger.current_state = "cancelled"
+    ledger.elapsed_ms = elapsed_ms
+    ledger.updated_at = utc_now()
+    append_event(ledger, state="cancelled", status="warning", actor=actor, message=message, detail=detail)
+
+
 def mark_completed(
     ledger: ResearchLedger,
     *,
@@ -229,6 +253,29 @@ def mark_failed(
         message=message,
         detail={"stage": stage, "detail": detail} if detail else {"stage": stage},
     )
+
+
+def record_control_action(
+    ledger: ResearchLedger,
+    *,
+    action: str,
+    actor: str,
+    note: str | None = None,
+    related_run_id: str | None = None,
+    metadata: dict[str, Any] | None = None,
+) -> None:
+    ledger.control_records.append(
+        ControlRecord(
+            action_id=f"{ledger.run_id or ledger.ledger_id}-control-{len(ledger.control_records) + 1}",
+            action=action,
+            actor=actor,
+            note=note,
+            related_run_id=related_run_id,
+            metadata=metadata or {},
+            created_at=utc_now(),
+        )
+    )
+    ledger.updated_at = utc_now()
 
 
 def _to_jsonable(payload: Any) -> Any:

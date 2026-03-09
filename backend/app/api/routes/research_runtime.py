@@ -1,4 +1,5 @@
 import logging
+from functools import lru_cache
 
 from fastapi import APIRouter, Depends, HTTPException
 
@@ -9,6 +10,7 @@ router = APIRouter(prefix="/research-runtime")
 logger = logging.getLogger("uvicorn.error")
 
 
+@lru_cache(maxsize=1)
 def get_research_runtime_service() -> ResearchRuntimeService:
     return ResearchRuntimeService()
 

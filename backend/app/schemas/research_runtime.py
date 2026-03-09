@@ -29,17 +29,21 @@ LedgerTaskStatus = Literal["queued", "running", "completed", "blocked", "cancell
 SourceType = Literal["doc", "paper", "web", "dataset", "interview", "note", "code"]
 RunState = Literal[
     "received",
+    "queued",
+    "running",
     "planning",
     "retrieving_local_context",
     "reasoning",
     "validating_output",
     "persisting_artifacts",
     "completed",
+    "cancelled",
     "failed",
     "awaiting_review",
 ]
 RunEventStatus = Literal["entered", "completed", "error", "warning", "fallback", "info"]
 ValidationIssueKind = Literal["parse_error", "validation_error", "repair_warning", "runtime_error"]
+ControlAction = Literal["retry", "cancel", "review_accept", "review_reject", "review_annotate"]
 
 
 class ContractBaseModel(BaseModel):
@@ -146,6 +150,16 @@ class RuntimeArtifact(ContractBaseModel):
     created_at: Optional[datetime] = None
 
 
+class ControlRecord(ContractBaseModel):
+    action_id: str
+    action: ControlAction
+    actor: str
+    note: Optional[str] = None
+    related_run_id: Optional[str] = None
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+    created_at: datetime
+
+
 class ResearchScope(ContractBaseModel):
     included_topics: List[str] = Field(default_factory=list)
     excluded_topics: List[str] = Field(default_factory=list)
@@ -234,6 +248,7 @@ class ResearchLedger(ContractBaseModel):
     research_question: str
     status: LedgerStatus
     owner: Optional[str] = None
+    parent_run_id: Optional[str] = None
     run_id: Optional[str] = None
     task_type: Optional[TaskType] = None
     current_state: Optional[RunState] = None
@@ -250,9 +265,13 @@ class ResearchLedger(ContractBaseModel):
     validation_errors: List[ValidationIssue] = Field(default_factory=list)
     parse_errors: List[ValidationIssue] = Field(default_factory=list)
     artifacts: List[RuntimeArtifact] = Field(default_factory=list)
+    control_records: List[ControlRecord] = Field(default_factory=list)
     synthesis_notes: List[str] = Field(default_factory=list)
     final_artifacts: List[ArtifactItem] = Field(default_factory=list)
     open_questions: List[str] = Field(default_factory=list)
+    request_objective: Optional[str] = None
+    request_payload: Dict[str, Any] = Field(default_factory=dict)
+    request_constraints: List[str] = Field(default_factory=list)
     model: Optional[str] = None
     base_url: Optional[str] = None
     used_mock_fallback: bool = False

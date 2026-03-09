@@ -30,7 +30,7 @@ class _FakeSDKRuntime:
     def is_available(self) -> bool:
         return self.available
 
-    def run(self, task, ledger):
+    def run(self, task, ledger, checkpoint_callback=None, abort_if_requested=None):
         if self._error is not None:
             raise self._error
         if self._result is None:
@@ -53,6 +53,8 @@ class _FakeSDKRuntime:
             ]
         )
         ledger.updated_at = self._result.completed_at
+        if checkpoint_callback is not None:
+            checkpoint_callback(ledger)
         return self._result, ledger
 
 

@@ -4,7 +4,7 @@ import json
 import logging
 from datetime import datetime, timezone
 from time import perf_counter
-from typing import Any
+from typing import Any, Callable
 
 from app.agents.agent_factory import AGENTS_SDK_AVAILABLE, ResearchAgentFactory
 from app.agents.manager import ManagerAgentOutput, ResearchResultAssembler
@@ -56,7 +56,13 @@ class AgentsSDKResearchRuntime:
     def is_available(self) -> bool:
         return AGENTS_SDK_AVAILABLE and Runner is not None and bool(self.openai_api_key)
 
-    def run(self, task: AgentTaskEnvelope, ledger: ResearchLedger) -> tuple[AgentResult, ResearchLedger]:
+    def run(
+        self,
+        task: AgentTaskEnvelope,
+        ledger: ResearchLedger,
+        checkpoint_callback: Callable[[ResearchLedger], None] | None = None,
+        abort_if_requested: Callable[[ResearchLedger], None] | None = None,
+    ) -> tuple[AgentResult, ResearchLedger]:
         if not AGENTS_SDK_AVAILABLE or Runner is None:
             raise RuntimeError("openai-agents is not installed")
         if not self.openai_api_key:
@@ -101,12 +107,16 @@ class AgentsSDKResearchRuntime:
             actor="agents-sdk",
             message="Preparing Ark-compatible agent context and local tools.",
         )
+        _emit_checkpoint(ledger, checkpoint_callback)
+        _abort_if_requested(ledger, abort_if_requested)
         transition_state(
             ledger,
             "reasoning",
             actor="agents-sdk",
             message="Running manager and specialist agents.",
         )
+        _emit_checkpoint(ledger, checkpoint_callback)
+        _abort_if_requested(ledger, abort_if_requested)
 
         manager_started_at = perf_counter()
         logger.info(
@@ -132,12 +142,15 @@ class AgentsSDKResearchRuntime:
             pipeline.get("flow"),
             (perf_counter() - specialists_started_at) * 1000,
         )
+        _abort_if_requested(ledger, abort_if_requested)
         transition_state(
             ledger,
             "validating_output",
             actor="agents-sdk",
             message="Recording validated Ark runtime outputs.",
         )
+        _emit_checkpoint(ledger, checkpoint_callback)
+        _abort_if_requested(ledger, abort_if_requested)
 
         completed_at = datetime.now(timezone.utc)
         runtime_metadata = factory.build_runtime_metadata(context)
@@ -154,6 +167,8 @@ class AgentsSDKResearchRuntime:
                 payload=validated_output.model_dump(mode="json", exclude_none=True),
                 repaired=True,
             )
+            _emit_checkpoint(ledger, checkpoint_callback)
+            _abort_if_requested(ledger, abort_if_requested)
             review_message = context.review_flags.get(specialist_name) or context.review_flags.get("manager")
             review_required = bool(review_message)
             result, updated_ledger = self.assembler.apply_competition_output(
@@ -176,8 +191,12 @@ class AgentsSDKResearchRuntime:
                     actor="agents-sdk",
                     message=review_message or "Ark runtime output requires manual review.",
                 )
+            _emit_checkpoint(updated_ledger, checkpoint_callback)
+            _abort_if_requested(updated_ledger, abort_if_requested)
         else:
             record_output(ledger, stage="legacy_pipeline", payload=pipeline, repaired=True)
+            _emit_checkpoint(ledger, checkpoint_callback)
+            _abort_if_requested(ledger, abort_if_requested)
             result, updated_ledger = self.assembler.apply_pipeline(
                 task=task,
                 ledger=ledger,
@@ -232,3 +251,19 @@ class AgentsSDKResearchRuntime:
             "expected_output": task.expected_output.model_dump(mode="json") if task.expected_output else None,
         }
         return json.dumps(payload, ensure_ascii=False)
+
+
+def _emit_checkpoint(
+    ledger: ResearchLedger,
+    checkpoint_callback: Callable[[ResearchLedger], None] | None,
+) -> None:
+    if checkpoint_callback is not None:
+        checkpoint_callback(ledger)
+
+
+def _abort_if_requested(
+    ledger: ResearchLedger,
+    abort_if_requested: Callable[[ResearchLedger], None] | None,
+) -> None:
+    if abort_if_requested is not None:
+        abort_if_requested(ledger)

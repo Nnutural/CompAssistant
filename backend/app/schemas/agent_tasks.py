@@ -5,10 +5,19 @@ from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.schemas.research_runtime import Priority, RequestedBy, ResultStatus, RunEventStatus, RunState, TaskType
+from app.schemas.research_runtime import (
+    ControlAction,
+    Priority,
+    RequestedBy,
+    ResultStatus,
+    RunEventStatus,
+    RunState,
+    TaskType,
+)
 
 
-TaskRunStatus = Literal["running", "completed", "failed", "awaiting_review"]
+TaskRunStatus = Literal["queued", "running", "completed", "cancelled", "failed", "awaiting_review"]
+ReviewDecision = Literal["accept", "reject", "annotate"]
 
 
 class AgentTaskApiModel(BaseModel):
@@ -51,6 +60,7 @@ class AgentTaskStatusResponse(AgentTaskApiModel):
     elapsed_ms: Optional[float] = None
     event_count: int = 0
     artifact_count: int = 0
+    available_actions: List[ControlAction] = Field(default_factory=list)
     created_at: datetime
     updated_at: Optional[datetime] = None
 
@@ -90,3 +100,52 @@ class AgentTaskArtifactsResponse(AgentTaskApiModel):
     task_type: Optional[TaskType] = None
     current_state: Optional[RunState] = None
     items: List[AgentTaskArtifactItem] = Field(default_factory=list)
+
+
+class AgentTaskHistoryItem(AgentTaskApiModel):
+    run_id: str
+    task_id: str
+    session_id: str
+    ledger_id: str
+    task_type: Optional[TaskType] = None
+    status: TaskRunStatus
+    current_state: Optional[RunState] = None
+    result_status: Optional[ResultStatus] = None
+    result_summary: Optional[str] = None
+    artifact_count: int = 0
+    has_artifacts: bool = False
+    awaiting_review: bool = False
+    used_mock_fallback: bool = False
+    parent_run_id: Optional[str] = None
+    available_actions: List[ControlAction] = Field(default_factory=list)
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+
+class AgentTaskHistoryResponse(AgentTaskApiModel):
+    items: List[AgentTaskHistoryItem] = Field(default_factory=list)
+    total: int
+    limit: int
+    offset: int
+
+
+class AgentTaskCancelRequest(AgentTaskApiModel):
+    note: Optional[str] = None
+
+
+class AgentTaskReviewRequest(AgentTaskApiModel):
+    decision: ReviewDecision
+    note: Optional[str] = None
+
+
+class AgentTaskControlResponse(AgentTaskApiModel):
+    action: ControlAction
+    message: str
+    task: AgentTaskStatusResponse
+
+
+class AgentTaskRetryResponse(AgentTaskApiModel):
+    action: Literal["retry"]
+    source_run_id: str
+    new_run: AgentTaskStatusResponse
+    message: str

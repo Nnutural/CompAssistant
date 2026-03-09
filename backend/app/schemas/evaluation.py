@@ -30,6 +30,15 @@ class EvaluationCaseResult(EvaluationModel):
     missing_fields: List[str] = Field(default_factory=list)
     warnings: List[str] = Field(default_factory=list)
     result_summary: Optional[str] = None
+    quality_score: float = 0.0
+    quality_threshold: float = 0.0
+    failed_quality_checks: List[str] = Field(default_factory=list)
+
+
+class EvaluationQualitySummary(EvaluationModel):
+    average_score: float
+    lowest_score: float
+    highest_score: float
 
 
 class EvaluationSummary(EvaluationModel):
@@ -37,6 +46,8 @@ class EvaluationSummary(EvaluationModel):
     passed_cases: int
     failed_cases: int
     warning_cases: int
+    low_quality_cases: int
+    quality: EvaluationQualitySummary
 
 
 class EvaluationReport(EvaluationModel):

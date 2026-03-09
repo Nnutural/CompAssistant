@@ -1,78 +1,104 @@
 # CompAssistant
 
-CompAssistant 当前是一个以大学生竞赛助手为核心的前后端项目。
+CompAssistant 现在不再只是一个 `competitions` 列表项目，而是一个同时包含以下两条能力线的竞赛助手仓库：
 
-仓库仍然保留原有的 `competitions.json` 数据源和 `competitions` API，同时已经补齐一套可本地运行的 Agent Runtime，用于把竞赛助手能力包装成可解释、可恢复、可轮询的后端契约层。
+- 原有的竞赛列表与详情 API
+- 面向三类竞赛任务的 Ark-only agent runtime，以及本地 mock fallback
 
-## 当前能力
+当前主任务类型：
 
-- 竞赛列表与详情接口仍然可用：`/api/competitions`、`/api/competitions/{id}`
-- Ark-only + `chat_completions` 真实模式仍然保留
-- mock runtime 仍然保留，并作为本地稳定回归基线
-- 当前主任务类型收敛为 3 类：
-  - `competition_recommendation`
-  - `competition_eligibility_check`
-  - `competition_timeline_plan`
-- legacy `research_plan` 路径仍保兼容，但不再作为前端主接入路径
-- 新增统一轮询式任务 API：
-  - `POST /api/agent/tasks`
-  - `GET /api/agent/tasks/{run_id}`
-  - `GET /api/agent/tasks/{run_id}/events`
-  - `GET /api/agent/tasks/{run_id}/artifacts`
+- `competition_recommendation`
+- `competition_eligibility_check`
+- `competition_timeline_plan`
 
-## 后端运行时概览
+legacy `research_plan` 仍保兼容，但不再是推荐的主接入路径。
 
-当前真实链路为：
+## 当前系统能力
 
-`FastAPI route -> ResearchRuntimeService -> mock manager / Ark-only Agents SDK runtime -> LedgerRepository`
+- `POST /api/agent/tasks` 支持“创建即返回 `run_id` + `queued`，后台线程继续执行”
+- `GET /api/agent/tasks/{run_id}` 可轮询任务状态
+- `GET /api/agent/tasks/{run_id}/events` 可读取事件时间线
+- `GET /api/agent/tasks/{run_id}/artifacts` 可读取结构化结果
+- `GET /api/agent/tasks` 可查询历史任务、筛选和分页
+- `POST /api/agent/tasks/{run_id}/retry` 支持最小重试闭环
+- `POST /api/agent/tasks/{run_id}/cancel` 支持最小取消闭环
+- `POST /api/agent/tasks/{run_id}/review` 支持最小审核动作
+- 前端已提供最小 Agent 面板，可创建任务、轮询状态、查看历史、执行控制动作
 
-Phase 4A 已经完成的核心增强包括：
+## 运行链路
 
-- 3 类竞赛任务主路径
-- 显式 run state machine
-- ledger events / artifacts / raw / repaired outputs
-- output repair / extraction / validation 三段式
-- 本地领域数据增强与工具层 grounding
+当前后端主链路：
 
-Phase 4B 在此基础上新增：
+`FastAPI route -> ResearchRuntimeService -> mock manager 或 Ark-only Agents SDK runtime -> LedgerRepository`
 
-- 面向前端轮询的 task/run API
-- 薄 DTO 与前端 types 对齐
-- 本地 evaluation dataset 与回归脚本
-- 前端最小 API client / types 占位
+这条链路保留了：
 
-## 目录
+- Ark-only + `chat_completions`
+- mock fallback
+- ledger 状态机
+- events / artifacts
+- output repair / validation
+- 本地领域数据 grounding
 
-```text
-CompAssistant/
-├─ backend/
-│  ├─ app/
-│  │  ├─ agents/
-│  │  ├─ api/routes/
-│  │  ├─ repositories/
-│  │  ├─ schemas/
-│  │  ├─ services/
-│  │  ├─ tests/
-│  │  └─ tools/
-│  ├─ data/
-│  │  ├─ competitions.json
-│  │  ├─ competitions_enriched.json
-│  │  ├─ eligibility_rules.json
-│  │  ├─ recommendation_rubric.json
-│  │  ├─ timeline_templates.json
-│  │  └─ evals/
-│  └─ scripts/run_eval.py
-├─ docs/
-└─ frontend/
-   └─ src/
-      ├─ api/agent.ts
-      ├─ types/agent.ts
-      └─ features/agent/
-```
+## API
 
-## 快速开始
+竞赛 API：
 
-### 后端
+- `GET /api/competitions`
+- `GET /api/competitions/{id}`
+
+推荐的智能体任务 API：
+
+- `POST /api/agent/tasks`
+- `GET /api/agent/tasks`
+- `GET /api/agent/tasks/{run_id}`
+- `GET /api/agent/tasks/{run_id}/events`
+- `GET /api/agent/tasks/{run_id}/artifacts`
+- `POST /api/agent/tasks/{run_id}/retry`
+- `POST /api/agent/tasks/{run_id}/cancel`
+- `POST /api/agent/tasks/{run_id}/review`
+
+旧兼容接口：
+
+- `POST /api/research-runtime/run`
+- `GET /api/research-runtime/ledger/{ledger_id}`
+
+新前端接入应优先使用 `/api/agent/tasks/*`。
+
+## 前端
+
+前端侧栏现在包含一个最小 Agent 面板入口：
+
+- `竞赛列表`
+- `使用说明`
+- `智能体面板`
+
+Agent 面板支持：
+
+- 选择任务类型
+- 输入 objective 和 payload JSON
+- 提交任务并立刻拿到 `run_id`
+- 轮询状态和事件
+- 查看 artifacts
+- 查看历史任务
+- 对当前任务执行 retry / cancel / review
+
+## 本地数据
+
+受版本控制的基础数据位于 `backend/data/`：
+
+- `competitions.json`
+- `competitions_enriched.json`
+- `eligibility_rules.json`
+- `recommendation_rubric.json`
+- `timeline_templates.json`
+- `evals/*.json`
+
+运行时 ledger、SQLite、WAL/SHM 等产物应保持忽略，不提交到仓库。
+
+## 本地启动
+
+后端：
 
 ```bash
 cd backend
@@ -82,7 +108,7 @@ pip install -r requirements.txt
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-### 前端
+前端：
 
 ```bash
 cd frontend
@@ -90,42 +116,28 @@ npm install
 npm run dev
 ```
 
-## 主要 API
+## 测试与评测
 
-### 竞赛数据
-
-- `GET /api/competitions`
-- `GET /api/competitions/{id}`
-
-### 新任务 API
-
-- `POST /api/agent/tasks`
-- `GET /api/agent/tasks/{run_id}`
-- `GET /api/agent/tasks/{run_id}/events`
-- `GET /api/agent/tasks/{run_id}/artifacts`
-
-### 旧兼容路由
-
-- `POST /api/research-runtime/run`
-- `GET /api/research-runtime/ledger/{ledger_id}`
-
-前端新接入应优先使用 `/api/agent/tasks/*`，不要直接绑定旧 `research-runtime` 路由。
-
-## 本地回归
-
-### 运行后端测试
+后端测试：
 
 ```bash
 backend\.venv\Scripts\python -m unittest discover -s backend/app/tests
 ```
 
-### 运行本地评测
+前端构建校验：
+
+```bash
+cd frontend
+npm run build
+```
+
+本地评测：
 
 ```bash
 backend\.venv\Scripts\python backend/scripts/run_eval.py --runtime-mode mock
 ```
 
-如需 JSON 输出：
+JSON 报告：
 
 ```bash
 backend\.venv\Scripts\python backend/scripts/run_eval.py --runtime-mode mock --json
@@ -133,16 +145,16 @@ backend\.venv\Scripts\python backend/scripts/run_eval.py --runtime-mode mock --j
 
 ## 文档
 
-- `docs/current-state.md`
-- `docs/agent-runtime-overview.md`
-- `docs/task-types.md`
-- `docs/ledger-state-machine.md`
 - `docs/frontend-integration.md`
 - `docs/evaluation.md`
+- `docs/operator-guide.md`
+- `docs/demo-phase5a.md`
+- `docs/demo-phase5b.md`
 
 ## 当前边界
 
-- 不引入 WebSearch、RAG、向量数据库、Redis、Celery
-- 不重写现有前端页面
-- 不替换 Ark-only 主逻辑
+- 不引入 WebSocket、Redis、Celery、消息队列
+- 不引入 RAG、向量数据库、联网检索
+- 不重写现有 competitions 页面
 - 不删除 mock fallback
+- Phase 5B 的控制接口仍是最小闭环，不是完整审批系统

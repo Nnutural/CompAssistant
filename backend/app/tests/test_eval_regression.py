@@ -29,7 +29,11 @@ class EvaluationRegressionTests(unittest.TestCase):
         self.assertEqual(report.summary.total_cases, 30)
         self.assertEqual(report.summary.failed_cases, 0)
         self.assertEqual(report.summary.passed_cases, 30)
+        self.assertGreater(report.summary.quality.average_score, 0.7)
+        self.assertGreaterEqual(report.summary.quality.highest_score, report.summary.quality.lowest_score)
+        self.assertLessEqual(report.summary.low_quality_cases, 2)
         self.assertTrue(all(result.passed for result in report.results))
+        self.assertTrue(all(result.quality_score >= result.quality_threshold for result in report.results))
 
 
 if __name__ == "__main__":

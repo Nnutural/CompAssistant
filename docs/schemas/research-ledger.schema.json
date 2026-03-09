@@ -52,6 +52,10 @@
       "type": "string",
       "description": "Ledger 的逻辑负责人，可为用户、系统或智能体名称。"
     },
+    "parent_run_id": {
+      "type": "string",
+      "description": "若本次运行来自 retry，可记录其源 run_id。"
+    },
     "run_id": {
       "type": "string",
       "description": "当前或最近一次运行的唯一标识。"
@@ -77,12 +81,15 @@
       "type": "string",
       "enum": [
         "received",
+        "queued",
+        "running",
         "planning",
         "retrieving_local_context",
         "reasoning",
         "validating_output",
         "persisting_artifacts",
         "completed",
+        "cancelled",
         "failed",
         "awaiting_review"
       ],
@@ -175,6 +182,14 @@
       },
       "default": []
     },
+    "control_records": {
+      "type": "array",
+      "description": "通过 retry / cancel / review 等操作留下的控制记录。",
+      "items": {
+        "$ref": "#/$defs/controlRecord"
+      },
+      "default": []
+    },
     "synthesis_notes": {
       "type": "array",
       "description": "阶段性综合结论或总结笔记。",
@@ -194,6 +209,24 @@
     "open_questions": {
       "type": "array",
       "description": "尚未解决的问题列表。",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "request_objective": {
+      "type": "string",
+      "description": "创建本次运行时的原始 objective。"
+    },
+    "request_payload": {
+      "type": "object",
+      "description": "创建本次运行时的原始 payload。",
+      "additionalProperties": true,
+      "default": {}
+    },
+    "request_constraints": {
+      "type": "array",
+      "description": "创建本次运行时的原始约束列表。",
       "items": {
         "type": "string"
       },
@@ -266,12 +299,15 @@
       "type": "string",
       "enum": [
         "received",
+        "queued",
+        "running",
         "planning",
         "retrieving_local_context",
         "reasoning",
         "validating_output",
         "persisting_artifacts",
         "completed",
+        "cancelled",
         "failed",
         "awaiting_review"
       ]
@@ -507,6 +543,40 @@
           "minLength": 1
         },
         "payload": {},
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "controlRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["action_id", "action", "actor", "metadata", "created_at"],
+      "properties": {
+        "action_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "action": {
+          "type": "string",
+          "enum": ["retry", "cancel", "review_accept", "review_reject", "review_annotate"]
+        },
+        "actor": {
+          "type": "string",
+          "minLength": 1
+        },
+        "note": {
+          "type": "string"
+        },
+        "related_run_id": {
+          "type": "string"
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": true,
+          "default": {}
+        },
         "created_at": {
           "type": "string",
           "format": "date-time"

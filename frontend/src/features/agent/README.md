@@ -1,17 +1,26 @@
-# Agent Feature Stub
+# Agent 面板说明
 
-此目录为后续最小 Agent 面板预留。
+当前目录承载 Phase 5B 的最小智能体面板：
 
-当前 Phase 4B 只完成契约层准备，不改造现有页面：
+- 创建任务
+- 轮询状态
+- 查看事件时间线
+- 查看 artifacts
+- 查看历史任务
+- 执行 retry / cancel / review
 
-- API 调用统一放在 `frontend/src/api/agent.ts`
-- 共享类型统一放在 `frontend/src/types/agent.ts`
-- 前端轮询主键使用 `run_id`
-- 新页面应优先调用 `/api/agent/tasks/*`，不要直接依赖旧 `/api/research-runtime/*` 路由
+关键文件：
 
-建议后续最小接入流程：
+- `AgentPanel.vue`
+- `components/TaskForm.vue`
+- `components/RunStatus.vue`
+- `components/EventTimeline.vue`
+- `components/ArtifactPanel.vue`
+- `components/TaskHistoryList.vue`
+- `config.ts`
 
-1. 调用 `createAgentTask` 创建任务并拿到 `run_id`
-2. 轮询 `getAgentTaskStatus`
-3. 按需读取 `getAgentTaskEvents` 渲染 timeline
-4. 读取 `getAgentTaskArtifacts` 渲染结果卡片
+约束：
+
+- 所有任务 API 调用统一走 `frontend/src/api/agent.ts`
+- 所有任务类型统一走 `frontend/src/types/agent.ts`
+- 新 UI 不直接依赖 legacy `/api/research-runtime/*`

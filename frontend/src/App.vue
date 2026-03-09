@@ -1,64 +1,60 @@
 <template>
-  <div class="app-container">
-    <!-- 侧边栏菜单 -->
+  <div class="app-shell">
     <aside class="sidebar">
-      <div class="logo">
+      <div class="brand">
         <h1>CompAssistant</h1>
+        <p>大学生竞赛与智能体演示面板</p>
       </div>
+
       <nav class="menu">
-        <a 
-          href="#" 
-          @click.prevent="currentView = 'competitions'"
+        <button
+          type="button"
           :class="['menu-item', { active: currentView === 'competitions' }]"
+          @click="currentView = 'competitions'"
         >
-          <span class="icon">📋</span>
-          <span class="text">竞赛列表</span>
-        </a>
-        <a 
-          href="#" 
-          @click.prevent="currentView = 'guide'"
+          竞赛列表
+        </button>
+        <button
+          type="button"
           :class="['menu-item', { active: currentView === 'guide' }]"
+          @click="currentView = 'guide'"
         >
-          <span class="icon">📖</span>
-          <span class="text">竞赛指导</span>
-        </a>
+          使用说明
+        </button>
+        <button
+          type="button"
+          :class="['menu-item', { active: currentView === 'agent' }]"
+          @click="currentView = 'agent'"
+        >
+          智能体面板
+        </button>
       </nav>
     </aside>
 
-    <!-- 主内容区 -->
     <main class="main-content">
-      <!-- 竞赛列表视图 -->
       <div v-if="currentView === 'competitions'" class="view">
         <CompetitionList />
       </div>
 
-      <!-- 竞赛指导视图 -->
-      <div v-if="currentView === 'guide'" class="view">
+      <div v-else-if="currentView === 'guide'" class="view">
         <Guide />
+      </div>
+
+      <div v-else class="view">
+        <AgentPanel />
       </div>
     </main>
   </div>
 </template>
 
-<script>
+<script setup>
 import { ref } from 'vue'
+
 import CompetitionList from './components/CompetitionList.vue'
 import Guide from './components/Guide.vue'
+import AgentPanel from './features/agent/AgentPanel.vue'
 
-export default {
-  name: 'App',
-  components: {
-    CompetitionList,
-    Guide
-  },
-  setup() {
-    const currentView = ref('competitions')
-
-    return {
-      currentView
-    }
-  }
-}
+const currentView = ref('competitions')
 </script>
 
 <style>
@@ -69,82 +65,101 @@ export default {
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
   background-color: #ffffff;
   color: #1d1d1f;
 }
 
-.app-container {
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+.app-shell {
   display: flex;
-  height: 100vh;
+  min-height: 100vh;
   background-color: #ffffff;
 }
 
-/* 侧边栏 */
 .sidebar {
-  width: 220px;
+  width: 240px;
   background-color: #f5f5f7;
   border-right: 1px solid #d2d2d7;
   display: flex;
   flex-direction: column;
   padding: 24px 16px;
-  overflow-y: auto;
+  gap: 28px;
 }
 
-.logo {
-  margin-bottom: 32px;
-}
-
-.logo h1 {
+.brand h1 {
   font-size: 24px;
   font-weight: 700;
-  letter-spacing: -0.5px;
   color: #1d1d1f;
+}
+
+.brand p {
+  margin-top: 8px;
+  color: #6e6e73;
+  font-size: 14px;
 }
 
 .menu {
   display: flex;
   flex-direction: column;
-  gap: 0;
+  gap: 6px;
 }
 
 .menu-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  border-radius: 8px;
-  text-decoration: none;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
   color: #1d1d1f;
-  font-size: 15px;
+  padding: 12px 14px;
+  text-align: left;
   cursor: pointer;
-  transition: all 0.2s ease;
-  margin-bottom: 4px;
+  transition:
+    background-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .menu-item:hover {
-  background-color: #e8e8ed;
+  background: #e8e8ed;
 }
 
 .menu-item.active {
-  background-color: #ffffff;
+  background: #ffffff;
   box-shadow: inset 0 0 0 1px #d2d2d7;
   font-weight: 600;
 }
 
-.menu-item .icon {
-  font-size: 18px;
-}
-
-/* 主内容区 */
 .main-content {
   flex: 1;
-  overflow-y: auto;
-  background-color: #ffffff;
+  min-width: 0;
+  background: #ffffff;
 }
 
 .view {
   width: 100%;
-  height: 100%;
+  min-height: 100vh;
+}
+
+@media (max-width: 900px) {
+  .app-shell {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid #d2d2d7;
+  }
+
+  .menu {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
 }
 </style>

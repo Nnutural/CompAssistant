@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from datetime import datetime, timezone
 from time import perf_counter
-from typing import Any, Iterable, Mapping
+from typing import Any, Callable, Iterable, Mapping
 
 from pydantic import BaseModel, Field
 
@@ -379,32 +379,46 @@ class ResearchRuntimeManager:
         self.orchestrator = orchestrator or ResearchOrchestrator()
         self.assembler = assembler or ResearchResultAssembler()
 
-    def run(self, task: AgentTaskEnvelope, ledger: ResearchLedger) -> tuple[AgentResult, ResearchLedger]:
+    def run(
+        self,
+        task: AgentTaskEnvelope,
+        ledger: ResearchLedger,
+        checkpoint_callback: Callable[[ResearchLedger], None] | None = None,
+        abort_if_requested: Callable[[ResearchLedger], None] | None = None,
+    ) -> tuple[AgentResult, ResearchLedger]:
         started_at_perf = perf_counter()
         logger.info("[research-runtime] mock manager start task_id=%s ledger_id=%s", task.task_id, ledger.ledger_id)
         started_at = datetime.now(timezone.utc)
+        _abort_if_requested(ledger, abort_if_requested)
         transition_state(
             ledger,
             "retrieving_local_context",
             actor="mock-manager",
-            message="Loading local competition context and rules.",
+            message="正在读取本地竞赛数据、规则与模板。",
         )
+        _emit_checkpoint(ledger, checkpoint_callback)
+        _abort_if_requested(ledger, abort_if_requested)
         transition_state(
             ledger,
             "reasoning",
             actor="mock-manager",
-            message="Running mock specialist flow.",
+            message="正在执行 mock specialist 流程。",
         )
+        _emit_checkpoint(ledger, checkpoint_callback)
+        _abort_if_requested(ledger, abort_if_requested)
         pipeline = self.orchestrator.run(task, ledger)
         completed_at = datetime.now(timezone.utc)
+        _abort_if_requested(ledger, abort_if_requested)
 
         if task.task_type in COMPETITION_TASK_MODELS:
             transition_state(
                 ledger,
                 "validating_output",
                 actor="mock-manager",
-                message="Repairing and validating specialist output.",
+                message="正在修复并校验 specialist 输出。",
             )
+            _emit_checkpoint(ledger, checkpoint_callback)
+            _abort_if_requested(ledger, abort_if_requested)
             specialist_name = str(pipeline["specialist_name"])
             validated_output, review_required, review_message = process_output_stage(
                 ledger=ledger,
@@ -419,6 +433,8 @@ class ResearchRuntimeManager:
                 payload=validated_output.model_dump(mode="json", exclude_none=True),
                 repaired=True,
             )
+            _emit_checkpoint(ledger, checkpoint_callback)
+            _abort_if_requested(ledger, abort_if_requested)
             follow_up_items = [
                 "当前结果完全基于本地 competitions 数据、规则和模板生成。",
             ]
@@ -442,6 +458,8 @@ class ResearchRuntimeManager:
                     actor="mock-manager",
                     message=review_message or "Output requires manual review.",
                 )
+            _emit_checkpoint(updated_ledger, checkpoint_callback)
+            _abort_if_requested(updated_ledger, abort_if_requested)
             logger.info(
                 "[research-runtime] mock manager completed competition task_id=%s ledger_id=%s status=%s elapsed_ms=%.2f",
                 task.task_id,
@@ -456,9 +474,11 @@ class ResearchRuntimeManager:
             ledger,
             "validating_output",
             actor="mock-manager",
-            message="Recording legacy research pipeline outputs.",
+            message="正在记录 legacy research pipeline 输出。",
         )
         record_output(ledger, stage="legacy_pipeline", payload=pipeline, repaired=True)
+        _emit_checkpoint(ledger, checkpoint_callback)
+        _abort_if_requested(ledger, abort_if_requested)
 
         direction_count = len(list(pipeline.get("trend", {}).get("directions", [])))
         evidence_count = len(list(pipeline.get("evidence", {}).get("evidence", [])))
@@ -493,6 +513,22 @@ class ResearchRuntimeManager:
             (perf_counter() - started_at_perf) * 1000,
         )
         return result
+
+
+def _emit_checkpoint(
+    ledger: ResearchLedger,
+    checkpoint_callback: Callable[[ResearchLedger], None] | None,
+) -> None:
+    if checkpoint_callback is not None:
+        checkpoint_callback(ledger)
+
+
+def _abort_if_requested(
+    ledger: ResearchLedger,
+    abort_if_requested: Callable[[ResearchLedger], None] | None,
+) -> None:
+    if abort_if_requested is not None:
+        abort_if_requested(ledger)
 
 
 def _build_competition_summary(validated_output: BaseModel) -> str:
