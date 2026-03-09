@@ -12,10 +12,12 @@ class Settings(BaseSettings):
     mysql_db: str = 'compddl'
 
     openai_api_key: str = ''
-    openai_default_model: str = 'gpt-4.1-mini'
-    research_runtime_mode: str = 'mock'
-    research_runtime_tracing_enabled: bool = True
+    openai_base_url: str = 'https://ark.cn-beijing.volces.com/api/v3'
+    openai_default_model: str = 'deepseek-v3-2-251201'
+    research_runtime_mode: str = 'agents_sdk'
+    research_runtime_tracing_enabled: bool = False
     research_runtime_session_db: str = ''
+    research_runtime_strict_mode: bool = False
 
     @property
     def sqlalchemy_database_uri(self) -> str:

@@ -1,7 +1,9 @@
 ﻿from __future__ import annotations
 
 import json
+import logging
 from datetime import datetime, timezone
+from time import perf_counter
 from typing import Any
 
 from app.agents.agent_factory import AGENTS_SDK_AVAILABLE, ResearchAgentFactory
@@ -10,12 +12,26 @@ from app.agents.runtime_tools import ResearchAgentContext, resolve_session_db_pa
 from app.schemas.research_runtime import AgentResult, AgentTaskEnvelope, ResearchLedger
 
 try:
-    from agents import Runner, gen_trace_id, set_default_openai_api, set_default_openai_key
+    from agents import (
+        Runner,
+        gen_trace_id,
+        set_default_openai_api,
+        set_default_openai_client,
+        set_default_openai_key,
+        set_tracing_disabled,
+    )
+    from openai import AsyncOpenAI
 except ImportError:
     Runner = None
     gen_trace_id = None
     set_default_openai_api = None
+    set_default_openai_client = None
     set_default_openai_key = None
+    set_tracing_disabled = None
+    AsyncOpenAI = None
+
+
+logger = logging.getLogger("uvicorn.error")
 
 
 class AgentsSDKResearchRuntime:
@@ -24,12 +40,14 @@ class AgentsSDKResearchRuntime:
         *,
         model: str,
         openai_api_key: str | None,
+        openai_base_url: str | None = None,
         tracing_enabled: bool,
         session_db_path: str | None = None,
         assembler: ResearchResultAssembler | None = None,
     ):
         self.model = model
         self.openai_api_key = openai_api_key or None
+        self.openai_base_url = openai_base_url or None
         self.tracing_enabled = tracing_enabled
         self.session_db_path = resolve_session_db_path(session_db_path)
         self.assembler = assembler or ResearchResultAssembler()
@@ -43,6 +61,16 @@ class AgentsSDKResearchRuntime:
         if not self.openai_api_key:
             raise RuntimeError('OPENAI_API_KEY is not configured')
 
+        runtime_started_at = perf_counter()
+        logger.info(
+            "[research-runtime] agents_sdk runtime start task_id=%s ledger_id=%s model=%s base_url=%s tracing=%s session_db=%s",
+            task.task_id,
+            ledger.ledger_id,
+            self.model,
+            self.openai_base_url,
+            self.tracing_enabled,
+            self.session_db_path,
+        )
         self._configure_sdk()
         started_at = datetime.now(timezone.utc)
         manager_trace_id = gen_trace_id() if self.tracing_enabled and gen_trace_id is not None else None
@@ -60,28 +88,36 @@ class AgentsSDKResearchRuntime:
             model=self.model,
             session_db_path=self.session_db_path,
             tracing_enabled=self.tracing_enabled,
+            base_url=self.openai_base_url,
         )
-        manager_agent = factory.build_manager_agent()
         context.session_ids['manager'] = f'{task.session_id}-manager'
         if manager_trace_id:
             context.trace_ids['manager'] = manager_trace_id
 
-        result = Runner.run_sync(
-            manager_agent,
-            input=self._build_manager_input(task, ledger),
-            context=context,
-            session=factory.create_session(context.session_ids['manager']),
-            run_config=factory.create_run_config(
-                workflow_name='Research Runtime / manager',
-                trace_id=manager_trace_id,
-                group_id=context.trace_group_id,
-            ),
+        manager_started_at = perf_counter()
+        logger.info("[research-runtime] agents_sdk manager step start task_id=%s session_id=%s", task.task_id, context.session_ids['manager'])
+        manager_output = factory.run_manager(context, self._build_manager_input(task, ledger))
+        logger.info(
+            "[research-runtime] agents_sdk manager step completed task_id=%s summary_chars=%s blockers=%s follow_up_items=%s elapsed_ms=%.2f",
+            task.task_id,
+            len(manager_output.summary),
+            len(manager_output.blockers),
+            len(manager_output.follow_up_items),
+            (perf_counter() - manager_started_at) * 1000,
         )
-        manager_output = result.final_output_as(ManagerAgentOutput, raise_if_incorrect_type=True)
 
+        specialists_started_at = perf_counter()
         pipeline = factory.ensure_specialist_outputs(context)
+        logger.info(
+            "[research-runtime] agents_sdk specialist pipeline completed task_id=%s trend=%s evidence=%s findings=%s elapsed_ms=%.2f",
+            task.task_id,
+            len(pipeline.get('trend', {}).get('directions', [])),
+            len(pipeline.get('evidence', {}).get('evidence', [])),
+            len(pipeline.get('critic', {}).get('findings', [])),
+            (perf_counter() - specialists_started_at) * 1000,
+        )
         completed_at = datetime.now(timezone.utc)
-        return self.assembler.apply_pipeline(
+        result, updated_ledger = self.assembler.apply_pipeline(
             task=task,
             ledger=ledger,
             pipeline=pipeline,
@@ -93,10 +129,32 @@ class AgentsSDKResearchRuntime:
             blockers=manager_output.blockers,
             runtime_metadata=factory.build_runtime_metadata(context),
         )
+        logger.info(
+            "[research-runtime] agents_sdk runtime completed task_id=%s ledger_id=%s status=%s artifacts=%s findings=%s elapsed_ms=%.2f",
+            task.task_id,
+            updated_ledger.ledger_id,
+            result.status,
+            len(result.artifacts),
+            len(result.findings),
+            (perf_counter() - runtime_started_at) * 1000,
+        )
+        return result, updated_ledger
 
     def _configure_sdk(self) -> None:
-        set_default_openai_api('responses')
-        set_default_openai_key(self.openai_api_key, use_for_tracing=self.tracing_enabled)
+        logger.info(
+            "[research-runtime] configuring Ark chat_completions client base_url=%s tracing=%s session_db=%s",
+            self.openai_base_url,
+            self.tracing_enabled,
+            self.session_db_path,
+        )
+        custom_client = AsyncOpenAI(
+            api_key=self.openai_api_key,
+            base_url=self.openai_base_url,
+        )
+        set_default_openai_client(custom_client, use_for_tracing=False)
+        set_default_openai_api('chat_completions')
+        set_default_openai_key(self.openai_api_key, use_for_tracing=False)
+        set_tracing_disabled(not self.tracing_enabled)
 
     def _build_manager_input(self, task: AgentTaskEnvelope, ledger: ResearchLedger) -> str:
         payload: dict[str, Any] = {

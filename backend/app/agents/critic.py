@@ -38,16 +38,31 @@ def build_critic_agent(model: str):
     if Agent is None:
         raise RuntimeError('openai-agents is not installed')
 
+    return build_critic_agent_with_mode(model=model, structured=True)
+
+
+def build_critic_agent_with_mode(model: str, *, structured: bool):
+    if Agent is None:
+        raise RuntimeError('openai-agents is not installed')
+
+    instructions = (
+        'You are Critic, a specialist that evaluates novelty, feasibility, and risk for the current research runtime output. '
+        'You must call the score_runtime_output tool exactly once and ground your final output in that tool result. '
+        'Do not claim external validation. '
+        'Phase 4 extension point: enrich this agent with stronger evidence review and provenance-aware critique.'
+    )
+    if structured:
+        instructions += ' Return only structured output that matches CriticOutput.'
+    else:
+        instructions += (
+            ' Return only a JSON object with keys: agent, assessment, findings, notes. '
+            'Do not wrap the JSON in markdown fences.'
+        )
+
     return Agent(
         name='critic',
         model=model,
         tools=build_critic_tools(),
-        output_type=CriticOutput,
-        instructions=(
-            'You are Critic, a specialist that evaluates novelty, feasibility, and risk for the current research runtime output. '
-            'You must call the score_runtime_output tool exactly once and ground your final output in that tool result. '
-            'Return only structured output that matches CriticOutput. '
-            'Do not claim external validation. '
-            'Phase 4 extension point: enrich this agent with stronger evidence review and provenance-aware critique.'
-        ),
+        output_type=CriticOutput if structured else None,
+        instructions=instructions,
     )

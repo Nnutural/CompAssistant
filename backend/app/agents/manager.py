@@ -1,6 +1,8 @@
 ﻿from __future__ import annotations
 
+import logging
 from datetime import datetime, timezone
+from time import perf_counter
 from typing import Any, Iterable, Mapping
 
 from pydantic import BaseModel, Field
@@ -16,6 +18,8 @@ from app.schemas.research_runtime import (
     ResearchLedger,
     SourceRecord,
 )
+
+logger = logging.getLogger("uvicorn.error")
 
 
 class ManagerAgentOutput(BaseModel):
@@ -138,6 +142,23 @@ class ResearchResultAssembler:
         mode = runtime_metadata.get('mode')
         if mode:
             metadata_notes.append(f'runtime mode: {mode}')
+        model = runtime_metadata.get('model')
+        if model:
+            metadata_notes.append(f'runtime model: {model}')
+        base_url = runtime_metadata.get('base_url')
+        if base_url:
+            metadata_notes.append(f'runtime base url: {base_url}')
+        if 'tracing_enabled' in runtime_metadata:
+            metadata_notes.append(
+                f"tracing enabled: {str(bool(runtime_metadata.get('tracing_enabled'))).lower()}"
+            )
+        if 'used_mock_fallback' in runtime_metadata:
+            metadata_notes.append(
+                f"used mock fallback: {str(bool(runtime_metadata.get('used_mock_fallback'))).lower()}"
+            )
+        fallback_reason = runtime_metadata.get('fallback_reason')
+        if fallback_reason:
+            metadata_notes.append(f'fallback reason: {fallback_reason}')
         manager_session_id = runtime_metadata.get('manager_session_id')
         if manager_session_id:
             metadata_notes.append(f'manager session id: {manager_session_id}')
@@ -181,6 +202,8 @@ class ResearchRuntimeManager:
 
     # Mock fallback manager. The real SDK-backed runtime is implemented in sdk_runtime.py.
     def run(self, task: AgentTaskEnvelope, ledger: ResearchLedger) -> tuple[AgentResult, ResearchLedger]:
+        started_at_perf = perf_counter()
+        logger.info("[research-runtime] mock manager start task_id=%s ledger_id=%s", task.task_id, ledger.ledger_id)
         started_at = datetime.now(timezone.utc)
         pipeline = self.orchestrator.run(task, ledger)
         completed_at = datetime.now(timezone.utc)
@@ -196,7 +219,7 @@ class ResearchRuntimeManager:
             'Phase 3 can swap the mock specialists for a real OpenAI Agents SDK runtime while keeping the contracts stable.',
             'Phase 4 can add network-backed evidence collection without changing the API shape.',
         ]
-        return self.assembler.apply_pipeline(
+        result = self.assembler.apply_pipeline(
             task=task,
             ledger=ledger,
             pipeline=pipeline,
@@ -208,3 +231,13 @@ class ResearchRuntimeManager:
             blockers=[],
             runtime_metadata={'mode': 'mock'},
         )
+        logger.info(
+            "[research-runtime] mock manager completed task_id=%s ledger_id=%s directions=%s evidence=%s findings=%s elapsed_ms=%.2f",
+            task.task_id,
+            ledger.ledger_id,
+            direction_count,
+            evidence_count,
+            len(result[0].findings),
+            (perf_counter() - started_at_perf) * 1000,
+        )
+        return result

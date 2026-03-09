@@ -37,16 +37,31 @@ def build_evidence_scout_agent(model: str):
     if Agent is None:
         raise RuntimeError('openai-agents is not installed')
 
+    return build_evidence_scout_agent_with_mode(model=model, structured=True)
+
+
+def build_evidence_scout_agent_with_mode(model: str, *, structured: bool):
+    if Agent is None:
+        raise RuntimeError('openai-agents is not installed')
+
+    instructions = (
+        'You are EvidenceScout, a specialist that turns provided directions into structured local source and evidence records. '
+        'You must call the build_evidence_seed tool exactly once and keep the final answer grounded in that tool output. '
+        'Do not claim network access or external retrieval. '
+        'Phase 4 extension point: replace the local evidence seed tool with real retrieval and extraction tools.'
+    )
+    if structured:
+        instructions += ' Return only structured output that matches EvidenceScoutOutput.'
+    else:
+        instructions += (
+            ' Return only a JSON object with keys: agent, sources, evidence, notes. '
+            'Do not wrap the JSON in markdown fences.'
+        )
+
     return Agent(
         name='evidence-scout',
         model=model,
         tools=build_evidence_tools(),
-        output_type=EvidenceScoutOutput,
-        instructions=(
-            'You are EvidenceScout, a specialist that turns provided directions into structured local source and evidence records. '
-            'You must call the build_evidence_seed tool exactly once and keep the final answer grounded in that tool output. '
-            'Return only structured output that matches EvidenceScoutOutput. '
-            'Do not claim network access or external retrieval. '
-            'Phase 4 extension point: replace the local evidence seed tool with real retrieval and extraction tools.'
-        ),
+        output_type=EvidenceScoutOutput if structured else None,
+        instructions=instructions,
     )

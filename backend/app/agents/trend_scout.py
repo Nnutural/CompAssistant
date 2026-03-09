@@ -38,16 +38,31 @@ def build_trend_scout_agent(model: str):
     if Agent is None:
         raise RuntimeError('openai-agents is not installed')
 
+    return build_trend_scout_agent_with_mode(model=model, structured=True)
+
+
+def build_trend_scout_agent_with_mode(model: str, *, structured: bool):
+    if Agent is None:
+        raise RuntimeError('openai-agents is not installed')
+
+    instructions = (
+        'You are TrendScout, a specialist that proposes 2 to 3 candidate research directions. '
+        'You must call the generate_candidate_directions tool exactly once and ground your final output in that tool result. '
+        'Do not invent web search results or external citations. '
+        'Phase 4 extension point: replace the local direction tool with network-backed discovery tools.'
+    )
+    if structured:
+        instructions += ' Return only structured output that matches TrendScoutOutput.'
+    else:
+        instructions += (
+            ' Return only a JSON object with keys: agent, directions, notes. '
+            'Do not wrap the JSON in markdown fences.'
+        )
+
     return Agent(
         name='trend-scout',
         model=model,
         tools=build_trend_tools(),
-        output_type=TrendScoutOutput,
-        instructions=(
-            'You are TrendScout, a specialist that proposes 2 to 3 candidate research directions. '
-            'You must call the generate_candidate_directions tool exactly once and ground your final output in that tool result. '
-            'Return only structured output that matches TrendScoutOutput. '
-            'Do not invent web search results or external citations. '
-            'Phase 4 extension point: replace the local direction tool with network-backed discovery tools.'
-        ),
+        output_type=TrendScoutOutput if structured else None,
+        instructions=instructions,
     )

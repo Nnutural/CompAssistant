@@ -1,4 +1,4 @@
-﻿import json
+import json
 import sys
 import tempfile
 import unittest
@@ -16,14 +16,23 @@ from app.services.research_runtime_service import ResearchRuntimeService  # noqa
 
 
 class _FakeSDKRuntime:
-    def __init__(self, available: bool, result: AgentResult | None = None):
+    def __init__(
+        self,
+        *,
+        available: bool,
+        result: AgentResult | None = None,
+        error: Exception | None = None,
+    ):
         self.available = available
         self._result = result
+        self._error = error
 
     def is_available(self) -> bool:
         return self.available
 
     def run(self, task, ledger):
+        if self._error is not None:
+            raise self._error
         if self._result is None:
             raise RuntimeError('SDK runtime was not configured for this test')
         ledger.task_history.append(
@@ -34,7 +43,15 @@ class _FakeSDKRuntime:
                 summary='Agents SDK test runtime updated the ledger.',
             )
         )
-        ledger.synthesis_notes.append('runtime mode: agents_sdk')
+        ledger.synthesis_notes.extend(
+            [
+                'runtime mode: agents_sdk',
+                'runtime model: deepseek-v3-2-251201',
+                'runtime base url: https://ark.cn-beijing.volces.com/api/v3',
+                'tracing enabled: false',
+                'used mock fallback: false',
+            ]
+        )
         ledger.updated_at = self._result.completed_at
         return self._result, ledger
 
@@ -56,6 +73,7 @@ class ResearchRuntimeServiceTests(unittest.TestCase):
     def test_run_task_updates_ledger_and_returns_structured_result_in_mock_mode(self) -> None:
         service = ResearchRuntimeService(repository=self.repository, runtime_mode='mock')
         result = service.run_task(self.task)
+
         self.assertIsInstance(result, AgentResult)
         self.assertEqual(result.status, 'completed')
         self.assertGreaterEqual(len(result.findings), 1)
@@ -65,6 +83,7 @@ class ResearchRuntimeServiceTests(unittest.TestCase):
         self.assertGreaterEqual(len(ledger.task_history), 1)
         self.assertGreaterEqual(len(ledger.evidence_log), 1)
         self.assertGreaterEqual(len(ledger.final_artifacts), 1)
+        self.assertIn('runtime mode: mock', ledger.synthesis_notes)
 
     def test_run_task_uses_agents_sdk_runtime_when_enabled(self) -> None:
         expected_result = AgentResult(
@@ -83,23 +102,75 @@ class ResearchRuntimeServiceTests(unittest.TestCase):
         )
 
         result = service.run_task(self.task)
-        self.assertEqual(result.summary, expected_result.summary)
 
+        self.assertEqual(result.summary, expected_result.summary)
         ledger = service.get_ledger('ledger-session-phase2-001')
         self.assertIsNotNone(ledger)
         self.assertGreaterEqual(len(ledger.task_history), 1)
         self.assertIn('runtime mode: agents_sdk', ledger.synthesis_notes)
+        self.assertIn('runtime base url: https://ark.cn-beijing.volces.com/api/v3', ledger.synthesis_notes)
+        self.assertIn('used mock fallback: false', ledger.synthesis_notes)
+
+    def test_run_task_falls_back_to_mock_when_sdk_runtime_fails_and_strict_mode_is_disabled(self) -> None:
+        service = ResearchRuntimeService(
+            repository=self.repository,
+            runtime_mode='agents_sdk',
+            strict_mode=False,
+            sdk_runtime=_FakeSDKRuntime(
+                available=True,
+                error=RuntimeError('Ark chat completions request failed'),
+            ),
+        )
+
+        result = service.run_task(self.task)
+
+        self.assertEqual(result.status, 'completed')
+        self.assertTrue(result.follow_up_items)
+        self.assertIn('Returned mock-derived result because Ark chat-completions runtime failed', result.follow_up_items[0])
+        ledger = service.get_ledger('ledger-session-phase2-001')
+        self.assertIsNotNone(ledger)
+        self.assertIn('runtime mode: mock', ledger.synthesis_notes)
+        self.assertIn('runtime model: deepseek-v3-2-251201', ledger.synthesis_notes)
+        self.assertIn('runtime base url: https://ark.cn-beijing.volces.com/api/v3', ledger.synthesis_notes)
+        self.assertIn('tracing enabled: false', ledger.synthesis_notes)
+        self.assertIn('used mock fallback: true', ledger.synthesis_notes)
+        self.assertTrue(any(note.startswith('fallback reason: Ark chat-completions runtime failed:') for note in ledger.synthesis_notes))
+
+    def test_run_task_raises_when_sdk_runtime_fails_and_strict_mode_is_enabled(self) -> None:
+        service = ResearchRuntimeService(
+            repository=self.repository,
+            runtime_mode='agents_sdk',
+            strict_mode=True,
+            sdk_runtime=_FakeSDKRuntime(
+                available=True,
+                error=RuntimeError('Ark chat completions request failed'),
+            ),
+        )
+
+        with self.assertRaisesRegex(RuntimeError, 'Ark chat-completions runtime failed'):
+            service.run_task(self.task)
+
+        ledger = service.get_ledger('ledger-session-phase2-001')
+        self.assertIsNotNone(ledger)
+        self.assertEqual(ledger.task_history, [])
+        self.assertEqual(ledger.evidence_log, [])
+        self.assertEqual(ledger.final_artifacts, [])
 
     def test_run_task_falls_back_to_mock_when_sdk_runtime_is_unavailable(self) -> None:
         service = ResearchRuntimeService(
             repository=self.repository,
             runtime_mode='agents_sdk',
+            strict_mode=False,
             sdk_runtime=_FakeSDKRuntime(available=False),
         )
 
         result = service.run_task(self.task)
+
         self.assertEqual(result.status, 'completed')
-        self.assertIn('fell back to mock mode', result.follow_up_items[0])
+        self.assertIn('Returned mock-derived result because Ark chat-completions runtime failed', result.follow_up_items[0])
+        ledger = service.get_ledger('ledger-session-phase2-001')
+        self.assertIsNotNone(ledger)
+        self.assertIn('used mock fallback: true', ledger.synthesis_notes)
 
 
 if __name__ == '__main__':
