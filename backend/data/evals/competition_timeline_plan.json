@@ -1,0 +1,192 @@
+[
+  {
+    "id": "timeline-001",
+    "task_type": "competition_timeline_plan",
+    "input": {
+      "payload": {
+        "competition_id": 24,
+        "deadline": "2026-06-20T18:00:00+00:00",
+        "constraints": {
+          "available_hours_per_week": 5,
+          "team_size": 2
+        }
+      }
+    },
+    "expected_required_fields": ["task_type", "deadline", "preparation_checklist", "milestones", "reverse_schedule"],
+    "scoring_rubric": {
+      "require_non_empty": ["milestones", "stage_plan", "reverse_schedule"]
+    },
+    "optional_notes": "软件杯计划。"
+  },
+  {
+    "id": "timeline-002",
+    "task_type": "competition_timeline_plan",
+    "input": {
+      "payload": {
+        "competition_id": 14,
+        "deadline": "2026-04-10T18:00:00+00:00",
+        "constraints": {
+          "available_hours_per_week": 6,
+          "team_size": 1
+        }
+      }
+    },
+    "expected_required_fields": ["competition_name", "preparation_checklist", "milestones.0.stage"],
+    "scoring_rubric": {
+      "require_non_empty": ["preparation_checklist", "milestones"]
+    },
+    "optional_notes": "单人算法竞赛。"
+  },
+  {
+    "id": "timeline-003",
+    "task_type": "competition_timeline_plan",
+    "input": {
+      "payload": {
+        "competition_id": 1,
+        "deadline": "2026-08-30T18:00:00+00:00",
+        "constraints": {
+          "available_hours_per_week": 8,
+          "team_size": 4
+        }
+      }
+    },
+    "expected_required_fields": ["competition_name", "milestones", "stage_plan", "reverse_schedule"],
+    "scoring_rubric": {
+      "require_non_empty": ["stage_plan", "reverse_schedule"]
+    },
+    "optional_notes": "创新创业长周期。"
+  },
+  {
+    "id": "timeline-004",
+    "task_type": "competition_timeline_plan",
+    "input": {
+      "payload": {
+        "competition_id": 17,
+        "deadline": "2026-02-01T18:00:00+00:00",
+        "constraints": {
+          "available_hours_per_week": 10,
+          "team_size": 3
+        }
+      }
+    },
+    "expected_required_fields": ["preparation_checklist", "milestones.1.deliverables", "stage_plan"],
+    "scoring_rubric": {
+      "require_non_empty": ["milestones.1.deliverables"]
+    },
+    "optional_notes": "美赛建模冲刺。"
+  },
+  {
+    "id": "timeline-005",
+    "task_type": "competition_timeline_plan",
+    "input": {
+      "payload": {
+        "competition_id": 12,
+        "deadline": "2026-10-01T18:00:00+00:00",
+        "constraints": {
+          "available_hours_per_week": 4,
+          "team_size": 1
+        }
+      }
+    },
+    "expected_required_fields": ["preparation_checklist", "milestones", "reverse_schedule"],
+    "scoring_rubric": {
+      "require_non_empty": ["reverse_schedule"]
+    },
+    "optional_notes": "语言类短周期。"
+  },
+  {
+    "id": "timeline-006",
+    "task_type": "competition_timeline_plan",
+    "input": {
+      "payload": {
+        "competition_id": 2,
+        "deadline": "2026-08-15T18:00:00+00:00",
+        "constraints": {
+          "available_hours_per_week": 9,
+          "team_size": 3
+        }
+      }
+    },
+    "expected_required_fields": ["milestones", "milestones.0.goals", "reverse_schedule"],
+    "scoring_rubric": {
+      "require_non_empty": ["milestones.0.goals", "reverse_schedule"]
+    },
+    "optional_notes": "电子设计大赛。"
+  },
+  {
+    "id": "timeline-007",
+    "task_type": "competition_timeline_plan",
+    "input": {
+      "payload": {
+        "competition_id": 10,
+        "deadline": "2026-07-01T18:00:00+00:00",
+        "constraints": {
+          "available_hours_per_week": 7,
+          "team_size": 3
+        }
+      }
+    },
+    "expected_required_fields": ["milestones", "stage_plan", "reverse_schedule"],
+    "scoring_rubric": {
+      "require_non_empty": ["milestones", "stage_plan"]
+    },
+    "optional_notes": "智能车计划。"
+  },
+  {
+    "id": "timeline-008",
+    "task_type": "competition_timeline_plan",
+    "input": {
+      "payload": {
+        "competition_id": 18,
+        "deadline": "2026-11-10T18:00:00+00:00",
+        "constraints": {
+          "available_hours_per_week": 6,
+          "team_size": 4
+        }
+      }
+    },
+    "expected_required_fields": ["preparation_checklist", "milestones", "reverse_schedule"],
+    "scoring_rubric": {
+      "require_non_empty": ["preparation_checklist", "reverse_schedule"]
+    },
+    "optional_notes": "高强度安全赛事。"
+  },
+  {
+    "id": "timeline-009",
+    "task_type": "competition_timeline_plan",
+    "input": {
+      "payload": {
+        "competition_id": 25,
+        "deadline": "2026-05-25T18:00:00+00:00",
+        "constraints": {
+          "available_hours_per_week": 8,
+          "team_size": 3
+        }
+      }
+    },
+    "expected_required_fields": ["milestones", "milestones.0.deliverables", "stage_plan"],
+    "scoring_rubric": {
+      "require_non_empty": ["milestones.0.deliverables", "stage_plan"]
+    },
+    "optional_notes": "5G 技术大赛。"
+  },
+  {
+    "id": "timeline-010",
+    "task_type": "competition_timeline_plan",
+    "input": {
+      "payload": {
+        "competition_id": 28,
+        "deadline": "2026-08-05T18:00:00+00:00",
+        "constraints": {
+          "available_hours_per_week": 5,
+          "team_size": 2
+        }
+      }
+    },
+    "expected_required_fields": ["competition_name", "preparation_checklist", "milestones", "reverse_schedule"],
+    "scoring_rubric": {
+      "require_non_empty": ["preparation_checklist", "milestones", "reverse_schedule"]
+    },
+    "optional_notes": "物联网设计大赛。"
+  }
+]

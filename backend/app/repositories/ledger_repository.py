@@ -20,11 +20,13 @@ class LedgerRepository:
         if path.exists():
             raise ValueError(f"Ledger already exists: {ledger.ledger_id}")
         logger.info(
-            "[research-runtime] ledger create ledger_id=%s path=%s task_history=%s evidence_log=%s final_artifacts=%s",
+            "[research-runtime] ledger create ledger_id=%s path=%s task_history=%s evidence_log=%s events=%s artifacts=%s final_artifacts=%s",
             ledger.ledger_id,
             path,
             len(ledger.task_history),
             len(ledger.evidence_log),
+            len(ledger.events),
+            len(ledger.artifacts),
             len(ledger.final_artifacts),
         )
         self._write(path, ledger)
@@ -42,12 +44,15 @@ class LedgerRepository:
     def update(self, ledger: ResearchLedger) -> ResearchLedger:
         path = self.get_storage_path(ledger.ledger_id)
         logger.info(
-            "[research-runtime] ledger update ledger_id=%s path=%s task_history=%s evidence_log=%s final_artifacts=%s",
+            "[research-runtime] ledger update ledger_id=%s path=%s task_history=%s evidence_log=%s events=%s artifacts=%s final_artifacts=%s state=%s",
             ledger.ledger_id,
             path,
             len(ledger.task_history),
             len(ledger.evidence_log),
+            len(ledger.events),
+            len(ledger.artifacts),
             len(ledger.final_artifacts),
+            ledger.current_state,
         )
         self._write(path, ledger)
         return ledger
@@ -58,6 +63,16 @@ class LedgerRepository:
             with path.open("r", encoding="utf-8") as handle:
                 ledgers.append(ResearchLedger.model_validate(json.load(handle)))
         return ledgers
+
+    def find_by_run_id(self, run_id: str) -> Optional[ResearchLedger]:
+        for ledger in self.list():
+            if ledger.run_id == run_id:
+                return ledger
+            if ledger.ledger_id == run_id:
+                return ledger
+            if any(entry.task_id == run_id for entry in ledger.task_history):
+                return ledger
+        return None
 
     def get_storage_path(self, ledger_id: str) -> Path:
         safe_name = re.sub(r"[^A-Za-z0-9._-]", "_", ledger_id)

@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import json
 import logging
@@ -8,6 +8,7 @@ from typing import Any
 
 from app.agents.agent_factory import AGENTS_SDK_AVAILABLE, ResearchAgentFactory
 from app.agents.manager import ManagerAgentOutput, ResearchResultAssembler
+from app.agents.run_state import mark_review_required, record_output, transition_state
 from app.agents.runtime_tools import ResearchAgentContext, resolve_session_db_path
 from app.schemas.research_runtime import AgentResult, AgentTaskEnvelope, ResearchLedger
 
@@ -57,9 +58,9 @@ class AgentsSDKResearchRuntime:
 
     def run(self, task: AgentTaskEnvelope, ledger: ResearchLedger) -> tuple[AgentResult, ResearchLedger]:
         if not AGENTS_SDK_AVAILABLE or Runner is None:
-            raise RuntimeError('openai-agents is not installed')
+            raise RuntimeError("openai-agents is not installed")
         if not self.openai_api_key:
-            raise RuntimeError('OPENAI_API_KEY is not configured')
+            raise RuntimeError("OPENAI_API_KEY is not configured")
 
         runtime_started_at = perf_counter()
         logger.info(
@@ -90,12 +91,29 @@ class AgentsSDKResearchRuntime:
             tracing_enabled=self.tracing_enabled,
             base_url=self.openai_base_url,
         )
-        context.session_ids['manager'] = f'{task.session_id}-manager'
+        context.session_ids["manager"] = f"{task.session_id}-manager"
         if manager_trace_id:
-            context.trace_ids['manager'] = manager_trace_id
+            context.trace_ids["manager"] = manager_trace_id
+
+        transition_state(
+            ledger,
+            "retrieving_local_context",
+            actor="agents-sdk",
+            message="Preparing Ark-compatible agent context and local tools.",
+        )
+        transition_state(
+            ledger,
+            "reasoning",
+            actor="agents-sdk",
+            message="Running manager and specialist agents.",
+        )
 
         manager_started_at = perf_counter()
-        logger.info("[research-runtime] agents_sdk manager step start task_id=%s session_id=%s", task.task_id, context.session_ids['manager'])
+        logger.info(
+            "[research-runtime] agents_sdk manager step start task_id=%s session_id=%s",
+            task.task_id,
+            context.session_ids["manager"],
+        )
         manager_output = factory.run_manager(context, self._build_manager_input(task, ledger))
         logger.info(
             "[research-runtime] agents_sdk manager step completed task_id=%s summary_chars=%s blockers=%s follow_up_items=%s elapsed_ms=%.2f",
@@ -109,26 +127,70 @@ class AgentsSDKResearchRuntime:
         specialists_started_at = perf_counter()
         pipeline = factory.ensure_specialist_outputs(context)
         logger.info(
-            "[research-runtime] agents_sdk specialist pipeline completed task_id=%s trend=%s evidence=%s findings=%s elapsed_ms=%.2f",
+            "[research-runtime] agents_sdk specialist pipeline completed task_id=%s flow=%s elapsed_ms=%.2f",
             task.task_id,
-            len(pipeline.get('trend', {}).get('directions', [])),
-            len(pipeline.get('evidence', {}).get('evidence', [])),
-            len(pipeline.get('critic', {}).get('findings', [])),
+            pipeline.get("flow"),
             (perf_counter() - specialists_started_at) * 1000,
         )
-        completed_at = datetime.now(timezone.utc)
-        result, updated_ledger = self.assembler.apply_pipeline(
-            task=task,
-            ledger=ledger,
-            pipeline=pipeline,
-            started_at=started_at,
-            completed_at=completed_at,
-            runtime_label='agents_sdk',
-            summary=manager_output.summary,
-            follow_up_items=manager_output.follow_up_items,
-            blockers=manager_output.blockers,
-            runtime_metadata=factory.build_runtime_metadata(context),
+        transition_state(
+            ledger,
+            "validating_output",
+            actor="agents-sdk",
+            message="Recording validated Ark runtime outputs.",
         )
+
+        completed_at = datetime.now(timezone.utc)
+        runtime_metadata = factory.build_runtime_metadata(context)
+        if task.task_type in {
+            "competition_recommendation",
+            "competition_eligibility_check",
+            "competition_timeline_plan",
+        }:
+            specialist_name = str(pipeline["specialist_name"])
+            validated_output = context.specialist_outputs[specialist_name]
+            record_output(
+                ledger,
+                stage="final",
+                payload=validated_output.model_dump(mode="json", exclude_none=True),
+                repaired=True,
+            )
+            review_message = context.review_flags.get(specialist_name) or context.review_flags.get("manager")
+            review_required = bool(review_message)
+            result, updated_ledger = self.assembler.apply_competition_output(
+                task=task,
+                ledger=ledger,
+                specialist_name=specialist_name,
+                validated_output=validated_output,
+                started_at=started_at,
+                completed_at=completed_at,
+                runtime_label="agents_sdk",
+                review_required=review_required,
+                review_message=review_message,
+                follow_up_items=manager_output.follow_up_items,
+                blockers=manager_output.blockers,
+                runtime_metadata=runtime_metadata,
+            )
+            if review_required:
+                mark_review_required(
+                    updated_ledger,
+                    actor="agents-sdk",
+                    message=review_message or "Ark runtime output requires manual review.",
+                )
+        else:
+            record_output(ledger, stage="legacy_pipeline", payload=pipeline, repaired=True)
+            result, updated_ledger = self.assembler.apply_pipeline(
+                task=task,
+                ledger=ledger,
+                pipeline=pipeline,
+                started_at=started_at,
+                completed_at=completed_at,
+                runtime_label="agents_sdk",
+                summary=manager_output.summary,
+                follow_up_items=manager_output.follow_up_items,
+                blockers=manager_output.blockers,
+                runtime_metadata=runtime_metadata,
+            )
+
         logger.info(
             "[research-runtime] agents_sdk runtime completed task_id=%s ledger_id=%s status=%s artifacts=%s findings=%s elapsed_ms=%.2f",
             task.task_id,
@@ -152,20 +214,21 @@ class AgentsSDKResearchRuntime:
             base_url=self.openai_base_url,
         )
         set_default_openai_client(custom_client, use_for_tracing=False)
-        set_default_openai_api('chat_completions')
+        set_default_openai_api("chat_completions")
         set_default_openai_key(self.openai_api_key, use_for_tracing=False)
         set_tracing_disabled(not self.tracing_enabled)
 
     def _build_manager_input(self, task: AgentTaskEnvelope, ledger: ResearchLedger) -> str:
         payload: dict[str, Any] = {
-            'task_id': task.task_id,
-            'session_id': task.session_id,
-            'ledger_id': ledger.ledger_id,
-            'topic': ledger.topic,
-            'research_question': ledger.research_question,
-            'objective': task.objective,
-            'payload': task.payload,
-            'constraints': task.constraints,
-            'expected_output': task.expected_output.model_dump(mode='json') if task.expected_output else None,
+            "task_id": task.task_id,
+            "session_id": task.session_id,
+            "ledger_id": ledger.ledger_id,
+            "task_type": task.task_type,
+            "topic": ledger.topic,
+            "research_question": ledger.research_question,
+            "objective": task.objective,
+            "payload": task.payload,
+            "constraints": task.constraints,
+            "expected_output": task.expected_output.model_dump(mode="json") if task.expected_output else None,
         }
         return json.dumps(payload, ensure_ascii=False)

@@ -6,6 +6,15 @@ from pathlib import Path
 from typing import Any
 
 from app.schemas.research_runtime import AgentTaskEnvelope, EvidenceRecord, FindingItem, ResearchLedger, SourceRecord
+from app.tools import (
+    build_timeline_template,
+    check_eligibility_rules,
+    compose_recommendation_rationale,
+    filter_competitions_by_profile,
+    load_competition_by_id,
+    score_competition_match,
+    unwrap_tool_result,
+)
 
 try:
     from agents.run_context import RunContextWrapper
@@ -23,6 +32,7 @@ class ResearchAgentContext:
     trace_group_id: str
     manager_trace_id: str | None = None
     specialist_outputs: dict[str, Any] = field(default_factory=dict)
+    review_flags: dict[str, str] = field(default_factory=dict)
     session_ids: dict[str, str] = field(default_factory=dict)
     trace_ids: dict[str, str] = field(default_factory=dict)
 
@@ -204,3 +214,101 @@ def build_critic_tools() -> list[Any]:
         }
 
     return [score_runtime_output_tool]
+
+
+def build_recommendation_tools() -> list[Any]:
+    try:
+        from agents import function_tool
+    except ImportError as exc:
+        raise RuntimeError('openai-agents is not installed') from exc
+
+    @function_tool(
+        name_override='filter_competitions_by_profile',
+        description_override='Return locally filtered competitions and score breakdowns for the provided profile.',
+    )
+    def filter_competitions_by_profile_tool(
+        ctx: RunContextWrapper[ResearchAgentContext],
+        profile: dict[str, Any],
+    ) -> dict[str, Any]:
+        return unwrap_tool_result(filter_competitions_by_profile(profile), 'filter_competitions_by_profile')
+
+    @function_tool(
+        name_override='compose_recommendation_rationale',
+        description_override='Compose short recommendation reasons and risk notes from a competition and score result.',
+    )
+    def compose_recommendation_rationale_tool(
+        ctx: RunContextWrapper[ResearchAgentContext],
+        competition: dict[str, Any],
+        scoring: dict[str, Any],
+    ) -> dict[str, Any]:
+        return unwrap_tool_result(
+            compose_recommendation_rationale(competition, scoring),
+            'compose_recommendation_rationale',
+        )
+
+    return [filter_competitions_by_profile_tool, compose_recommendation_rationale_tool]
+
+
+def build_eligibility_tools() -> list[Any]:
+    try:
+        from agents import function_tool
+    except ImportError as exc:
+        raise RuntimeError('openai-agents is not installed') from exc
+
+    @function_tool(
+        name_override='load_competition_by_id',
+        description_override='Load a locally enriched competition record by id.',
+    )
+    def load_competition_by_id_tool(
+        ctx: RunContextWrapper[ResearchAgentContext],
+        competition_id: int,
+    ) -> dict[str, Any]:
+        return unwrap_tool_result(load_competition_by_id(competition_id), 'load_competition_by_id')
+
+    @function_tool(
+        name_override='check_eligibility_rules',
+        description_override='Check local eligibility and suitability rules for a competition and profile.',
+    )
+    def check_eligibility_rules_tool(
+        ctx: RunContextWrapper[ResearchAgentContext],
+        competition_id: int,
+        profile: dict[str, Any],
+    ) -> dict[str, Any]:
+        return unwrap_tool_result(check_eligibility_rules(competition_id, profile), 'check_eligibility_rules')
+
+    return [load_competition_by_id_tool, check_eligibility_rules_tool]
+
+
+def build_timeline_tools() -> list[Any]:
+    try:
+        from agents import function_tool
+    except ImportError as exc:
+        raise RuntimeError('openai-agents is not installed') from exc
+
+    @function_tool(
+        name_override='build_timeline_template',
+        description_override='Build a local reverse timeline plan from competition id, deadline, and constraints.',
+    )
+    def build_timeline_template_tool(
+        ctx: RunContextWrapper[ResearchAgentContext],
+        competition_id: int,
+        deadline: str | None,
+        constraints: dict[str, Any],
+    ) -> dict[str, Any]:
+        return unwrap_tool_result(
+            build_timeline_template(competition_id, deadline, constraints),
+            'build_timeline_template',
+        )
+
+    @function_tool(
+        name_override='score_competition_match',
+        description_override='Score a local competition match against the current profile to decide workload stretch.',
+    )
+    def score_competition_match_tool(
+        ctx: RunContextWrapper[ResearchAgentContext],
+        competition: dict[str, Any],
+        profile: dict[str, Any],
+    ) -> dict[str, Any]:
+        return unwrap_tool_result(score_competition_match(competition, profile), 'score_competition_match')
+
+    return [build_timeline_template_tool, score_competition_match_tool]

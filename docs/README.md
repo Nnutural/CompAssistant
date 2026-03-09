@@ -1,16 +1,24 @@
-﻿# 文档总览
+# 文档总览
 
-本目录用于放置支撑未来 Codex 和多智能体接入的规划文档与契约文档，同时不改变当前运行行为。
+当前文档已经从早期脚手架阶段推进到可运行 runtime 的说明阶段。
 
 ## 建议优先阅读
 
-- `current-state.md`：记录仓库当前真实状态的快照。
-- `codex-agent-scaffold.md`：说明新增占位目录的用途，以及未来应由谁补充。
-- `repository-hygiene.md`：说明提交与忽略的建议。
-- `schemas/`：放置结构化输出与 agent 交接所需的 JSON Schema。
+- `current-state.md`：当前仓库真实状态快照
+- `agent-runtime-overview.md`：后端运行时、路由、service、ledger 关系
+- `task-types.md`：3 类主任务输入输出说明
+- `ledger-state-machine.md`：显式状态机、events、artifacts 说明
+- `frontend-integration.md`：前端应如何接入新的 task API
+- `evaluation.md`：本地 eval dataset 与回归脚本说明
+- `schemas/`：核心契约 JSON Schema
+
+## 仍保留的脚手架文档
+
+- `codex-agent-scaffold.md`
+- `repository-hygiene.md`
 
 ## 文档策略
 
-- 优先先写清边界，再写集成代码。
-- 保持这些文档与当前仓库结构同步。
-- 将这些文件视为脚手架，而不是实现。
+- 文档必须与当前实现一致
+- 前端新接入优先参考 `/api/agent/tasks/*`
+- legacy `research-runtime` 路由只作为兼容入口保留

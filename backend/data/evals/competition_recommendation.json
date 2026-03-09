@@ -1,0 +1,193 @@
+[
+  {
+    "id": "recommendation-001",
+    "task_type": "competition_recommendation",
+    "input": {
+      "objective": "为算法方向大一学生推荐竞赛。",
+      "payload": {
+        "profile": {
+          "direction": "算法/编程",
+          "grade": "freshman",
+          "ability_tags": ["algorithms", "cpp", "problem-solving"],
+          "preference_tags": ["team", "onsite"]
+        }
+      }
+    },
+    "expected_required_fields": ["task_type", "profile_summary", "recommendations", "recommendations.0.competition_name"],
+    "scoring_rubric": {
+      "require_non_empty": ["recommendations", "risk_overview"]
+    },
+    "optional_notes": "基础算法型推荐路径。"
+  },
+  {
+    "id": "recommendation-002",
+    "task_type": "competition_recommendation",
+    "input": {
+      "payload": {
+        "profile": {
+          "direction": "网络安全",
+          "grade": "junior",
+          "ability_tags": ["security", "linux", "reverse"],
+          "preference_tags": ["flexible"]
+        }
+      }
+    },
+    "expected_required_fields": ["profile_summary", "recommendations", "recommendations.0.match_score"],
+    "scoring_rubric": {
+      "require_non_empty": ["recommendations"]
+    },
+    "optional_notes": "安全方向高阶画像。"
+  },
+  {
+    "id": "recommendation-003",
+    "task_type": "competition_recommendation",
+    "input": {
+      "payload": {
+        "profile": {
+          "direction": "综合/创新创业",
+          "grade": "sophomore",
+          "ability_tags": ["prototype", "presentation", "market-research"],
+          "preference_tags": ["team"]
+        }
+      }
+    },
+    "expected_required_fields": ["profile_summary", "recommendations", "recommendations.0.reasons"],
+    "scoring_rubric": {
+      "require_non_empty": ["recommendations.0.reasons"]
+    },
+    "optional_notes": "创新创业方向推荐。"
+  },
+  {
+    "id": "recommendation-004",
+    "task_type": "competition_recommendation",
+    "input": {
+      "payload": {
+        "profile": {
+          "direction": "数学/建模",
+          "grade": "junior",
+          "ability_tags": ["mathematics", "python", "latex"],
+          "preference_tags": ["team"]
+        }
+      }
+    },
+    "expected_required_fields": ["recommendations", "recommendations.0.focus_tags"],
+    "scoring_rubric": {
+      "require_non_empty": ["recommendations.0.focus_tags"]
+    },
+    "optional_notes": "建模方向推荐。"
+  },
+  {
+    "id": "recommendation-005",
+    "task_type": "competition_recommendation",
+    "input": {
+      "payload": {
+        "profile": {
+          "direction": "英语/语言",
+          "grade": "freshman",
+          "ability_tags": ["english", "writing", "speaking"],
+          "preference_tags": ["individual"]
+        }
+      }
+    },
+    "expected_required_fields": ["recommendations", "recommendations.0.risk_notes"],
+    "scoring_rubric": {
+      "require_non_empty": ["recommendations.0.risk_notes"]
+    },
+    "optional_notes": "语言类推荐。"
+  },
+  {
+    "id": "recommendation-006",
+    "task_type": "competition_recommendation",
+    "input": {
+      "payload": {
+        "profile": {
+          "direction": "硬件/电子",
+          "grade": "senior",
+          "ability_tags": ["hardware", "embedded", "debugging"],
+          "preference_tags": ["team"]
+        }
+      }
+    },
+    "expected_required_fields": ["recommendations", "recommendations.0.competition_id"],
+    "scoring_rubric": {
+      "require_non_empty": ["recommendations"]
+    },
+    "optional_notes": "硬件电子方向推荐。"
+  },
+  {
+    "id": "recommendation-007",
+    "task_type": "competition_recommendation",
+    "input": {
+      "payload": {
+        "profile": {
+          "direction": "机器人/智能车",
+          "grade": "junior",
+          "ability_tags": ["robotics", "control", "testing"],
+          "preference_tags": ["team"]
+        }
+      }
+    },
+    "expected_required_fields": ["recommendations", "recommendations.0.competition_name", "risk_overview"],
+    "scoring_rubric": {
+      "require_non_empty": ["risk_overview"]
+    },
+    "optional_notes": "机器人方向推荐。"
+  },
+  {
+    "id": "recommendation-008",
+    "task_type": "competition_recommendation",
+    "input": {
+      "payload": {
+        "profile": {
+          "direction": "综合/科技",
+          "grade": "sophomore",
+          "ability_tags": ["engineering", "prototype", "presentation"],
+          "preference_tags": ["team"]
+        }
+      }
+    },
+    "expected_required_fields": ["recommendations", "recommendations.0.reasons", "recommendations.0.risk_notes"],
+    "scoring_rubric": {
+      "require_non_empty": ["recommendations.0.reasons", "recommendations.0.risk_notes"]
+    },
+    "optional_notes": "综合科技方向。"
+  },
+  {
+    "id": "recommendation-009",
+    "task_type": "competition_recommendation",
+    "input": {
+      "payload": {
+        "profile": {
+          "direction": "硬件/芯片",
+          "grade": "senior",
+          "ability_tags": ["communication", "signals", "embedded"],
+          "preference_tags": ["team"]
+        }
+      }
+    },
+    "expected_required_fields": ["recommendations", "recommendations.0.match_score", "risk_overview"],
+    "scoring_rubric": {
+      "require_non_empty": ["recommendations.0.match_score"]
+    },
+    "optional_notes": "通信与芯片方向。"
+  },
+  {
+    "id": "recommendation-010",
+    "task_type": "competition_recommendation",
+    "input": {
+      "payload": {
+        "profile": {
+          "direction": "算法/编程",
+          "grade": "senior",
+          "ability_tags": ["algorithms", "cpp", "teamwork", "regional-qualification"],
+          "preference_tags": ["team", "onsite"]
+        }
+      }
+    },
+    "expected_required_fields": ["recommendations", "recommendations.0.focus_tags", "recommendations.0.reasons"],
+    "scoring_rubric": {
+      "require_non_empty": ["recommendations.0.focus_tags", "recommendations.0.reasons"]
+    },
+    "optional_notes": "高阶算法画像。"
+  }
+]

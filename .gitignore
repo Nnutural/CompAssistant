@@ -87,6 +87,10 @@ ENV/
 # Local databases / secrets
 *.sqlite
 *.sqlite3
+*.sqlite-shm
+*.sqlite-wal
+*.sqlite3-shm
+*.sqlite3-wal
 *.db
 *.pem
 *.key
@@ -94,6 +98,7 @@ ENV/
 
 # 补充：仓库本地生成物
 .env.local
+backend/data/research_ledgers/
 backend/.venv/
 backend/__pycache__/
 backend/.pytest_cache/

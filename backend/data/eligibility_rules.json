@@ -1,0 +1,78 @@
+{
+  "version": "1.0",
+  "default": {
+    "minimum_grade_by_level": {
+      "S": "sophomore",
+      "A+": "freshman",
+      "A": "freshman"
+    }
+  },
+  "field_expectations": {
+    "算法/编程": {
+      "required_any_tags": ["algorithms", "cpp", "python", "problem-solving"],
+      "attention_points": ["建议先保证每周固定训练频率，再冲刺高强度比赛。"]
+    },
+    "数学/建模": {
+      "required_any_tags": ["mathematics", "python", "data-analysis", "latex"],
+      "attention_points": ["论文写作与建模思路同等重要，不能只看代码能力。"]
+    },
+    "网络安全": {
+      "required_any_tags": ["security", "linux", "scripting", "reverse"],
+      "attention_points": ["建议确认题型基础后再报名高强度 CTF。"]
+    },
+    "综合/创新创业": {
+      "required_any_tags": ["prototype", "presentation", "market-research", "business-model"],
+      "attention_points": ["创新创业类赛事通常需要稳定的团队分工和完整表达材料。"]
+    },
+    "英语/语言": {
+      "required_any_tags": ["english", "writing", "speaking", "presentation"],
+      "attention_points": ["更看重表达稳定性和持续打磨。"]
+    }
+  },
+  "competition_overrides": {
+    "1": {
+      "minimum_grade": "freshman",
+      "attention_points": ["如暂无项目原型，建议先从校内或院级项目孵化再报名。"],
+      "rationale": ["该赛事适合作为产品型或创业型项目的展示窗口。"]
+    },
+    "3": {
+      "minimum_grade": "sophomore",
+      "required_any_tags": ["algorithms", "cpp", "regional-qualification"],
+      "hard_blocks": ["regional-qualification"],
+      "attention_points": ["世界总决赛通常不是零基础直上的入口，建议先以区域赛为目标。"],
+      "rationale": ["若缺少晋级路径，应优先改报蓝桥杯、CCPC 或 ICPC 区域赛。"]
+    },
+    "7": {
+      "minimum_grade": "freshman",
+      "required_any_tags": ["algorithms", "cpp", "teamwork"],
+      "attention_points": ["建议至少完成一轮系统化题型训练并建立固定队伍。"]
+    },
+    "17": {
+      "minimum_grade": "sophomore",
+      "required_any_tags": ["mathematics", "python", "latex"],
+      "attention_points": ["需提前确认队伍写作和建模分工，避免只会跑代码。"]
+    },
+    "18": {
+      "minimum_grade": "junior",
+      "required_any_tags": ["security", "reverse", "advanced-security"],
+      "hard_blocks": ["advanced-security"],
+      "attention_points": ["如当前没有成熟题型积累，建议先以 XCTF、强网杯等为过渡。"],
+      "rationale": ["该赛事更适合作为高阶安全队伍的冲刺目标。"]
+    },
+    "23": {
+      "minimum_grade": "freshman",
+      "attention_points": ["计算机设计类赛事更看重作品完成度、展示表达和多模块协同，建议尽早冻结题目范围并安排演示材料。"],
+      "rationale": ["该赛事适合作为综合型计算机项目的展示窗口，但不宜只准备单点技术实现。"]
+    },
+    "25": {
+      "minimum_grade": "sophomore",
+      "required_any_tags": ["communication", "signals", "embedded"],
+      "attention_points": ["需尽早确认通信实验环境与设备资源。"]
+    },
+    "28": {
+      "minimum_grade": "sophomore",
+      "required_any_tags": ["embedded", "hardware", "iot"],
+      "attention_points": ["物联网类任务常见瓶颈在联调与稳定性，不宜临近截止再整合。"]
+    }
+  }
+}

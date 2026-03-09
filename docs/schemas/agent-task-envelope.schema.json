@@ -37,6 +37,9 @@
     "task_type": {
       "type": "string",
       "enum": [
+        "competition_recommendation",
+        "competition_eligibility_check",
+        "competition_timeline_plan",
         "research_plan",
         "source_discovery",
         "evidence_extraction",

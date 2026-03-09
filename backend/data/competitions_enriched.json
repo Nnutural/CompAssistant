@@ -1,0 +1,132 @@
+{
+  "version": "1.0",
+  "field_profiles": {
+    "综合/创新创业": {
+      "focus_tags": ["innovation", "pitch", "product", "teamwork"],
+      "preferred_skills": ["market-research", "prototype", "presentation", "business-model"],
+      "suitable_grades": ["freshman", "sophomore", "junior", "senior", "graduate"],
+      "eligibility_notes": ["更适合已有原型或明确选题的团队。", "需要兼顾展示表达与落地可行性。"],
+      "team_mode": "team",
+      "timeline_template_id": "innovation_long_cycle",
+      "min_recommended_weeks": 10
+    },
+    "硬件/电子": {
+      "focus_tags": ["hardware", "embedded", "debugging", "integration"],
+      "preferred_skills": ["circuit", "pcb", "mcu", "measurement"],
+      "suitable_grades": ["sophomore", "junior", "senior", "graduate"],
+      "eligibility_notes": ["需要稳定的调试窗口和器材准备。", "建议至少两人协作完成硬件与软件联调。"],
+      "team_mode": "team",
+      "timeline_template_id": "hardware_build",
+      "min_recommended_weeks": 8
+    },
+    "算法/编程": {
+      "focus_tags": ["algorithms", "coding", "teamwork", "problem-solving"],
+      "preferred_skills": ["data-structures", "algorithms", "cpp", "python"],
+      "suitable_grades": ["freshman", "sophomore", "junior", "senior"],
+      "eligibility_notes": ["高难度场景通常需要持续刷题和赛后复盘。", "现场赛型竞赛对团队配合要求较高。"],
+      "team_mode": "team",
+      "timeline_template_id": "algorithm_intensive",
+      "min_recommended_weeks": 8
+    },
+    "数学/建模": {
+      "focus_tags": ["modeling", "analysis", "paper-writing", "research"],
+      "preferred_skills": ["mathematics", "python", "latex", "data-analysis"],
+      "suitable_grades": ["sophomore", "junior", "senior", "graduate"],
+      "eligibility_notes": ["建议至少具备基础建模和论文写作训练。", "冲刺期需要较集中的连续时间块。"],
+      "team_mode": "team",
+      "timeline_template_id": "modeling_cycle",
+      "min_recommended_weeks": 6
+    },
+    "机器人/智能车": {
+      "focus_tags": ["robotics", "control", "integration", "testing"],
+      "preferred_skills": ["embedded", "control", "mechanical", "vision"],
+      "suitable_grades": ["sophomore", "junior", "senior", "graduate"],
+      "eligibility_notes": ["更适合有机械、电控、算法分工的团队。", "器材采购、联调和实测耗时通常高于纯软件项目。"],
+      "team_mode": "team",
+      "timeline_template_id": "hardware_build",
+      "min_recommended_weeks": 10
+    },
+    "综合/科技": {
+      "focus_tags": ["research", "engineering", "demo", "presentation"],
+      "preferred_skills": ["prototype", "presentation", "report", "engineering"],
+      "suitable_grades": ["freshman", "sophomore", "junior", "senior", "graduate"],
+      "eligibility_notes": ["适合有课程项目、实验室项目或综合作品基础的团队。", "展示材料和技术报告通常同等重要。"],
+      "team_mode": "team",
+      "timeline_template_id": "standard_delivery",
+      "min_recommended_weeks": 8
+    },
+    "英语/语言": {
+      "focus_tags": ["speech", "writing", "presentation", "expression"],
+      "preferred_skills": ["english", "writing", "speaking", "research"],
+      "suitable_grades": ["freshman", "sophomore", "junior", "senior", "graduate"],
+      "eligibility_notes": ["更看重稳定表达和持续打磨，而不是大规模技术开发。", "适合作为低工程投入、高表达训练价值的竞赛项。"],
+      "team_mode": "individual",
+      "timeline_template_id": "presentation_short",
+      "min_recommended_weeks": 4
+    },
+    "网络安全": {
+      "focus_tags": ["security", "ctf", "attack-defense", "analysis"],
+      "preferred_skills": ["linux", "security", "scripting", "reverse"],
+      "suitable_grades": ["sophomore", "junior", "senior", "graduate"],
+      "eligibility_notes": ["需要稳定的题型积累和训练平台。", "高强度赛事对逆向、web、pwn 等方向的专项能力要求明显。"],
+      "team_mode": "flexible",
+      "timeline_template_id": "security_sprint",
+      "min_recommended_weeks": 6
+    },
+    "硬件/芯片": {
+      "focus_tags": ["communication", "5g", "chip", "protocol"],
+      "preferred_skills": ["signals", "communication", "embedded", "protocol"],
+      "suitable_grades": ["sophomore", "junior", "senior", "graduate"],
+      "eligibility_notes": ["更适合通信、电子、自动化背景较强的队伍。", "赛前应尽早确认实验环境和设备条件。"],
+      "team_mode": "team",
+      "timeline_template_id": "hardware_build",
+      "min_recommended_weeks": 8
+    }
+  },
+  "competition_overrides": {
+    "1": {
+      "focus_tags": ["innovation", "entrepreneurship", "pitch", "prototype"],
+      "timeline_template_id": "innovation_long_cycle"
+    },
+    "3": {
+      "focus_tags": ["icpc", "algorithms", "onsite", "teamwork"],
+      "preferred_skills": ["algorithms", "cpp", "regional-qualification"],
+      "suitable_grades": ["sophomore", "junior", "senior"],
+      "eligibility_notes": ["世界总决赛类任务更适合已有区域赛晋级路径的队伍。"]
+    },
+    "7": {
+      "focus_tags": ["icpc", "regional", "algorithms", "teamwork"],
+      "preferred_skills": ["algorithms", "cpp", "teamwork"],
+      "suitable_grades": ["freshman", "sophomore", "junior", "senior"]
+    },
+    "12": {
+      "focus_tags": ["english", "writing", "speech", "presentation"],
+      "team_mode": "individual",
+      "timeline_template_id": "presentation_short"
+    },
+    "17": {
+      "focus_tags": ["modeling", "paper-writing", "simulation", "research"],
+      "preferred_skills": ["mathematics", "latex", "python", "data-analysis"]
+    },
+    "18": {
+      "focus_tags": ["security", "ctf", "reverse", "advanced-security"],
+      "preferred_skills": ["reverse", "security", "linux", "advanced-security"],
+      "suitable_grades": ["junior", "senior", "graduate"],
+      "eligibility_notes": ["国际高强度 CTF 更适合已有系统化题型训练和实战经验的队伍。"]
+    },
+    "25": {
+      "focus_tags": ["communication", "5g", "embedded", "protocol"],
+      "preferred_skills": ["communication", "signals", "embedded", "protocol"]
+    },
+    "26": {
+      "focus_tags": ["ict", "cloud", "network", "engineering"],
+      "preferred_skills": ["network", "cloud", "presentation", "engineering"],
+      "timeline_template_id": "standard_delivery"
+    },
+    "28": {
+      "focus_tags": ["iot", "hardware", "embedded", "cloud"],
+      "preferred_skills": ["embedded", "hardware", "cloud", "protocol"],
+      "timeline_template_id": "hardware_build"
+    }
+  }
+}

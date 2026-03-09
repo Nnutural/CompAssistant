@@ -135,6 +135,8 @@ class ResearchRuntimeServiceTests(unittest.TestCase):
         self.assertIn('tracing enabled: false', ledger.synthesis_notes)
         self.assertIn('used mock fallback: true', ledger.synthesis_notes)
         self.assertTrue(any(note.startswith('fallback reason: Ark chat-completions runtime failed:') for note in ledger.synthesis_notes))
+        self.assertTrue(ledger.used_mock_fallback)
+        self.assertTrue(str(ledger.fallback_reason).startswith('Ark chat-completions runtime failed:'))
 
     def test_run_task_raises_when_sdk_runtime_fails_and_strict_mode_is_enabled(self) -> None:
         service = ResearchRuntimeService(
@@ -155,6 +157,8 @@ class ResearchRuntimeServiceTests(unittest.TestCase):
         self.assertEqual(ledger.task_history, [])
         self.assertEqual(ledger.evidence_log, [])
         self.assertEqual(ledger.final_artifacts, [])
+        self.assertEqual(ledger.current_state, 'failed')
+        self.assertEqual(ledger.error_stage, 'planning')
 
     def test_run_task_falls_back_to_mock_when_sdk_runtime_is_unavailable(self) -> None:
         service = ResearchRuntimeService(
@@ -171,6 +175,7 @@ class ResearchRuntimeServiceTests(unittest.TestCase):
         ledger = service.get_ledger('ledger-session-phase2-001')
         self.assertIsNotNone(ledger)
         self.assertIn('used mock fallback: true', ledger.synthesis_notes)
+        self.assertTrue(ledger.used_mock_fallback)
 
 
 if __name__ == '__main__':

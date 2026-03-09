@@ -1,0 +1,202 @@
+[
+  {
+    "id": "eligibility-001",
+    "task_type": "competition_eligibility_check",
+    "input": {
+      "payload": {
+        "competition_id": 14,
+        "profile": {
+          "direction": "算法/编程",
+          "grade": "freshman",
+          "ability_tags": ["algorithms", "python", "problem-solving"],
+          "preference_tags": ["team"]
+        }
+      }
+    },
+    "expected_required_fields": ["task_type", "competition_name", "eligibility_label", "rationale"],
+    "scoring_rubric": {
+      "require_non_empty": ["rationale", "attention_points"]
+    },
+    "optional_notes": "蓝桥杯基础资格判断。"
+  },
+  {
+    "id": "eligibility-002",
+    "task_type": "competition_eligibility_check",
+    "input": {
+      "payload": {
+        "competition_id": 3,
+        "profile": {
+          "direction": "算法/编程",
+          "grade": "freshman",
+          "ability_tags": ["algorithms", "cpp"],
+          "preference_tags": ["team"]
+        }
+      }
+    },
+    "expected_required_fields": ["competition_id", "eligibility_label", "missing_conditions"],
+    "scoring_rubric": {
+      "require_non_empty": ["missing_conditions"]
+    },
+    "optional_notes": "世界总决赛应触发缺失条件。"
+  },
+  {
+    "id": "eligibility-003",
+    "task_type": "competition_eligibility_check",
+    "input": {
+      "payload": {
+        "competition_id": 17,
+        "profile": {
+          "direction": "数学/建模",
+          "grade": "junior",
+          "ability_tags": ["mathematics", "python", "latex"],
+          "preference_tags": ["team"]
+        }
+      }
+    },
+    "expected_required_fields": ["competition_name", "rationale", "attention_points"],
+    "scoring_rubric": {
+      "require_non_empty": ["rationale"]
+    },
+    "optional_notes": "美赛判断。"
+  },
+  {
+    "id": "eligibility-004",
+    "task_type": "competition_eligibility_check",
+    "input": {
+      "payload": {
+        "competition_id": 18,
+        "profile": {
+          "direction": "网络安全",
+          "grade": "sophomore",
+          "ability_tags": ["security", "linux"],
+          "preference_tags": ["flexible"]
+        }
+      }
+    },
+    "expected_required_fields": ["eligibility_label", "missing_conditions", "attention_points"],
+    "scoring_rubric": {
+      "require_non_empty": ["missing_conditions", "attention_points"]
+    },
+    "optional_notes": "高阶 CTF 应不推荐。"
+  },
+  {
+    "id": "eligibility-005",
+    "task_type": "competition_eligibility_check",
+    "input": {
+      "payload": {
+        "competition_id": 12,
+        "profile": {
+          "direction": "英语/语言",
+          "grade": "freshman",
+          "ability_tags": ["english", "speaking", "writing"],
+          "preference_tags": ["individual"]
+        }
+      }
+    },
+    "expected_required_fields": ["competition_name", "eligibility_label", "rationale"],
+    "scoring_rubric": {
+      "require_non_empty": ["attention_points"]
+    },
+    "optional_notes": "英语赛事适配。"
+  },
+  {
+    "id": "eligibility-006",
+    "task_type": "competition_eligibility_check",
+    "input": {
+      "payload": {
+        "competition_id": 25,
+        "profile": {
+          "direction": "硬件/芯片",
+          "grade": "senior",
+          "ability_tags": ["communication", "signals", "embedded"],
+          "preference_tags": ["team"]
+        }
+      }
+    },
+    "expected_required_fields": ["competition_name", "attention_points", "rationale"],
+    "scoring_rubric": {
+      "require_non_empty": ["attention_points", "rationale"]
+    },
+    "optional_notes": "大唐杯适配。"
+  },
+  {
+    "id": "eligibility-007",
+    "task_type": "competition_eligibility_check",
+    "input": {
+      "payload": {
+        "competition_id": 28,
+        "profile": {
+          "direction": "硬件/电子",
+          "grade": "junior",
+          "ability_tags": ["embedded", "hardware", "iot"],
+          "preference_tags": ["team"]
+        }
+      }
+    },
+    "expected_required_fields": ["eligibility_label", "rationale", "attention_points"],
+    "scoring_rubric": {
+      "require_non_empty": ["rationale"]
+    },
+    "optional_notes": "物联网设计大赛。"
+  },
+  {
+    "id": "eligibility-008",
+    "task_type": "competition_eligibility_check",
+    "input": {
+      "payload": {
+        "competition_id": 1,
+        "profile": {
+          "direction": "综合/创新创业",
+          "grade": "sophomore",
+          "ability_tags": ["prototype", "market-research", "presentation"],
+          "preference_tags": ["team"]
+        }
+      }
+    },
+    "expected_required_fields": ["competition_name", "eligibility_label", "attention_points"],
+    "scoring_rubric": {
+      "require_non_empty": ["attention_points"]
+    },
+    "optional_notes": "互联网+ 适配。"
+  },
+  {
+    "id": "eligibility-009",
+    "task_type": "competition_eligibility_check",
+    "input": {
+      "payload": {
+        "competition_id": 10,
+        "profile": {
+          "direction": "机器人/智能车",
+          "grade": "sophomore",
+          "ability_tags": ["robotics", "control", "testing"],
+          "preference_tags": ["team"]
+        }
+      }
+    },
+    "expected_required_fields": ["competition_name", "eligibility_label", "rationale"],
+    "scoring_rubric": {
+      "require_non_empty": ["rationale"]
+    },
+    "optional_notes": "智能车竞赛。"
+  },
+  {
+    "id": "eligibility-010",
+    "task_type": "competition_eligibility_check",
+    "input": {
+      "payload": {
+        "competition_id": 23,
+        "profile": {
+          "direction": "综合/科技",
+          "grade": "freshman",
+          "ability_tags": ["engineering", "presentation"],
+          "preference_tags": ["team"]
+        }
+      }
+    },
+    "expected_required_fields": ["competition_name", "eligibility_label", "attention_points", "rationale"],
+    "scoring_rubric": {
+      "require_non_empty": ["attention_points", "rationale"]
+    },
+    "optional_notes": "设计类综合科技竞赛。"
+  }
+]

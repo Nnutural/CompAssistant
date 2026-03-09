@@ -1,0 +1,209 @@
+{
+  "version": "1.0",
+  "templates": {
+    "innovation_long_cycle": {
+      "default_duration_days": 90,
+      "base_checklist": [
+        "确认选题与目标用户",
+        "完成原型或 MVP 范围定义",
+        "准备商业/展示材料",
+        "提前安排彩排与答辩分工"
+      ],
+      "stages": [
+        {
+          "stage": "选题与组队",
+          "days_before_deadline": 70,
+          "goals": ["明确赛题方向", "完成团队角色分配"],
+          "deliverables": ["题目说明", "分工表"]
+        },
+        {
+          "stage": "原型与验证",
+          "days_before_deadline": 42,
+          "goals": ["完成核心功能原型", "收集用户或场景验证"],
+          "deliverables": ["原型演示", "验证记录"]
+        },
+        {
+          "stage": "材料打磨",
+          "days_before_deadline": 21,
+          "goals": ["完善 PPT 和商业计划", "补齐展示故事线"],
+          "deliverables": ["PPT", "计划书"]
+        },
+        {
+          "stage": "终稿提交",
+          "days_before_deadline": 5,
+          "goals": ["完成终稿检查", "预演答辩"],
+          "deliverables": ["提交包", "彩排清单"]
+        }
+      ]
+    },
+    "algorithm_intensive": {
+      "default_duration_days": 56,
+      "base_checklist": [
+        "锁定训练平台与题单",
+        "建立每周复盘节奏",
+        "准备模板与比赛环境",
+        "安排模拟赛"
+      ],
+      "stages": [
+        {
+          "stage": "基础补齐",
+          "days_before_deadline": 42,
+          "goals": ["梳理核心算法模块", "修正常错题型"],
+          "deliverables": ["算法清单", "错题集"]
+        },
+        {
+          "stage": "强化训练",
+          "days_before_deadline": 21,
+          "goals": ["完成多轮模拟赛", "稳定队伍协作节奏"],
+          "deliverables": ["模拟赛记录", "队伍分工"]
+        },
+        {
+          "stage": "冲刺准备",
+          "days_before_deadline": 5,
+          "goals": ["冻结模板", "完成赛前检查"],
+          "deliverables": ["模板库", "赛前 checklist"]
+        }
+      ]
+    },
+    "modeling_cycle": {
+      "default_duration_days": 45,
+      "base_checklist": [
+        "准备常用建模模板",
+        "确认数据分析与写作分工",
+        "提前演练论文排版"
+      ],
+      "stages": [
+        {
+          "stage": "题型准备",
+          "days_before_deadline": 30,
+          "goals": ["梳理常见模型", "准备数据清洗脚本"],
+          "deliverables": ["模型清单", "脚本模板"]
+        },
+        {
+          "stage": "论文演练",
+          "days_before_deadline": 14,
+          "goals": ["完成一次完整写作演练", "统一图表规范"],
+          "deliverables": ["演练论文", "图表规范"]
+        },
+        {
+          "stage": "正式冲刺",
+          "days_before_deadline": 3,
+          "goals": ["检查论文结构", "补齐引用和附录"],
+          "deliverables": ["终稿论文", "提交包"]
+        }
+      ]
+    },
+    "hardware_build": {
+      "default_duration_days": 70,
+      "base_checklist": [
+        "确认器材与实验环境",
+        "预留联调时间",
+        "准备备份元件和应急方案"
+      ],
+      "stages": [
+        {
+          "stage": "方案冻结",
+          "days_before_deadline": 50,
+          "goals": ["完成系统方案评审", "锁定关键器件"],
+          "deliverables": ["方案图", "器件清单"]
+        },
+        {
+          "stage": "开发联调",
+          "days_before_deadline": 24,
+          "goals": ["完成硬件制作与软件联调", "补齐关键测试"],
+          "deliverables": ["联调记录", "测试报告"]
+        },
+        {
+          "stage": "稳定性打磨",
+          "days_before_deadline": 7,
+          "goals": ["完成长时间稳定性测试", "准备展示材料"],
+          "deliverables": ["稳定性记录", "展示材料"]
+        }
+      ]
+    },
+    "security_sprint": {
+      "default_duration_days": 35,
+      "base_checklist": [
+        "按题型拆分训练计划",
+        "准备脚本与基础环境",
+        "安排赛后复盘"
+      ],
+      "stages": [
+        {
+          "stage": "题型补齐",
+          "days_before_deadline": 24,
+          "goals": ["补齐短板题型", "更新训练脚本"],
+          "deliverables": ["题型清单", "工具脚本"]
+        },
+        {
+          "stage": "实战模拟",
+          "days_before_deadline": 10,
+          "goals": ["完成高强度模拟赛", "固定队内分工"],
+          "deliverables": ["模拟赛记录", "分工说明"]
+        },
+        {
+          "stage": "比赛周准备",
+          "days_before_deadline": 2,
+          "goals": ["检查环境", "明确沟通与提交流程"],
+          "deliverables": ["环境清单", "提交流程"]
+        }
+      ]
+    },
+    "standard_delivery": {
+      "default_duration_days": 56,
+      "base_checklist": [
+        "确认赛题目标和输出格式",
+        "建立周节奏和检查点",
+        "提前准备展示与文档"
+      ],
+      "stages": [
+        {
+          "stage": "方案设计",
+          "days_before_deadline": 35,
+          "goals": ["冻结范围", "确认关键里程碑"],
+          "deliverables": ["需求说明", "里程碑表"]
+        },
+        {
+          "stage": "实现与验证",
+          "days_before_deadline": 14,
+          "goals": ["完成主体实现", "补齐验证材料"],
+          "deliverables": ["作品主体", "验证记录"]
+        },
+        {
+          "stage": "提交与展示",
+          "days_before_deadline": 4,
+          "goals": ["检查提交包", "预演展示"],
+          "deliverables": ["提交包", "展示稿"]
+        }
+      ]
+    },
+    "presentation_short": {
+      "default_duration_days": 28,
+      "base_checklist": [
+        "锁定演讲主题或写作题目",
+        "安排固定练习频次",
+        "准备评委问答"
+      ],
+      "stages": [
+        {
+          "stage": "内容成型",
+          "days_before_deadline": 18,
+          "goals": ["完成初稿", "梳理表达结构"],
+          "deliverables": ["初稿", "提纲"]
+        },
+        {
+          "stage": "表达打磨",
+          "days_before_deadline": 8,
+          "goals": ["完成多轮练习", "优化语言与节奏"],
+          "deliverables": ["练习记录", "修订稿"]
+        },
+        {
+          "stage": "赛前演练",
+          "days_before_deadline": 2,
+          "goals": ["完成最终演练", "准备问答"],
+          "deliverables": ["终稿", "问答清单"]
+        }
+      ]
+    }
+  }
+}

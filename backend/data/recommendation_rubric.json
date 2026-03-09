@@ -1,0 +1,22 @@
+{
+  "version": "1.0",
+  "weights": {
+    "field_alignment": 35,
+    "grade_alignment": 20,
+    "ability_alignment": 25,
+    "preference_alignment": 10,
+    "difficulty_alignment": 10
+  },
+  "level_bonus": {
+    "S": 4,
+    "A+": 2,
+    "A": 0
+  },
+  "difficulty_preferences_by_grade": {
+    "freshman": ["中等"],
+    "sophomore": ["中等", "困难"],
+    "junior": ["中等", "困难"],
+    "senior": ["中等", "困难"],
+    "graduate": ["中等", "困难"]
+  }
+}

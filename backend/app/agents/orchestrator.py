@@ -13,6 +13,48 @@ class ResearchOrchestrator:
 
     def run(self, task: AgentTaskEnvelope, ledger: ResearchLedger) -> dict:
         started_at = perf_counter()
+        if task.task_type == "competition_recommendation":
+            output = self.registry.get("competition-recommender").run(task, ledger)
+            logger.info(
+                "[research-runtime] mock orchestrator recommendation completed task_id=%s recommendations=%s elapsed_ms=%.2f",
+                task.task_id,
+                len(output.get("recommendations", [])),
+                (perf_counter() - started_at) * 1000,
+            )
+            return {
+                "flow": task.task_type,
+                "specialist_name": "competition-recommender",
+                "specialist_output": output,
+            }
+
+        if task.task_type == "competition_eligibility_check":
+            output = self.registry.get("eligibility-checker").run(task, ledger)
+            logger.info(
+                "[research-runtime] mock orchestrator eligibility completed task_id=%s missing_conditions=%s elapsed_ms=%.2f",
+                task.task_id,
+                len(output.get("missing_conditions", [])),
+                (perf_counter() - started_at) * 1000,
+            )
+            return {
+                "flow": task.task_type,
+                "specialist_name": "eligibility-checker",
+                "specialist_output": output,
+            }
+
+        if task.task_type == "competition_timeline_plan":
+            output = self.registry.get("timeline-planner").run(task, ledger)
+            logger.info(
+                "[research-runtime] mock orchestrator timeline completed task_id=%s milestones=%s elapsed_ms=%.2f",
+                task.task_id,
+                len(output.get("milestones", [])),
+                (perf_counter() - started_at) * 1000,
+            )
+            return {
+                "flow": task.task_type,
+                "specialist_name": "timeline-planner",
+                "specialist_output": output,
+            }
+
         logger.info("[research-runtime] mock orchestrator trend-scout start task_id=%s", task.task_id)
         trend_started_at = perf_counter()
         trend_result = self.registry.get("trend-scout").run(task, ledger)
@@ -46,6 +88,7 @@ class ResearchOrchestrator:
             (perf_counter() - started_at) * 1000,
         )
         return {
+            "flow": task.task_type,
             "trend": trend_result,
             "evidence": evidence_result,
             "critic": critic_result,

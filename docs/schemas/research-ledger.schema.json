@@ -52,6 +52,53 @@
       "type": "string",
       "description": "Ledger 的逻辑负责人，可为用户、系统或智能体名称。"
     },
+    "run_id": {
+      "type": "string",
+      "description": "当前或最近一次运行的唯一标识。"
+    },
+    "task_type": {
+      "type": "string",
+      "enum": [
+        "competition_recommendation",
+        "competition_eligibility_check",
+        "competition_timeline_plan",
+        "research_plan",
+        "source_discovery",
+        "evidence_extraction",
+        "synthesis",
+        "review",
+        "report_draft",
+        "schema_validation",
+        "general"
+      ],
+      "description": "当前或最近一次运行的任务类型。"
+    },
+    "current_state": {
+      "type": "string",
+      "enum": [
+        "received",
+        "planning",
+        "retrieving_local_context",
+        "reasoning",
+        "validating_output",
+        "persisting_artifacts",
+        "completed",
+        "failed",
+        "awaiting_review"
+      ],
+      "description": "当前运行状态。"
+    },
+    "completed_states": {
+      "type": "array",
+      "description": "当前运行已完成的状态列表。",
+      "items": {
+        "$ref": "#/$defs/runState"
+      },
+      "default": []
+    },
+    "error_stage": {
+      "$ref": "#/$defs/runState"
+    },
     "scope": {
       "$ref": "#/$defs/researchScope"
     },
@@ -84,6 +131,50 @@
         "$ref": "#/$defs/evidenceRecord"
       }
     },
+    "events": {
+      "type": "array",
+      "description": "运行过程中记录的阶段事件。",
+      "items": {
+        "$ref": "#/$defs/runEvent"
+      },
+      "default": []
+    },
+    "raw_outputs": {
+      "type": "object",
+      "description": "各阶段保留的原始输出。",
+      "additionalProperties": true,
+      "default": {}
+    },
+    "repaired_outputs": {
+      "type": "object",
+      "description": "各阶段修复或提取后的输出。",
+      "additionalProperties": true,
+      "default": {}
+    },
+    "validation_errors": {
+      "type": "array",
+      "description": "输出验证阶段产生的错误或警告。",
+      "items": {
+        "$ref": "#/$defs/validationIssue"
+      },
+      "default": []
+    },
+    "parse_errors": {
+      "type": "array",
+      "description": "输出提取或修复阶段产生的解析错误。",
+      "items": {
+        "$ref": "#/$defs/validationIssue"
+      },
+      "default": []
+    },
+    "artifacts": {
+      "type": "array",
+      "description": "面向运行时消费的结构化产物。",
+      "items": {
+        "$ref": "#/$defs/runtimeArtifact"
+      },
+      "default": []
+    },
     "synthesis_notes": {
       "type": "array",
       "description": "阶段性综合结论或总结笔记。",
@@ -108,6 +199,57 @@
       },
       "default": []
     },
+    "model": {
+      "type": "string",
+      "description": "当前运行使用的模型名。"
+    },
+    "base_url": {
+      "type": "string",
+      "description": "当前运行使用的 Ark 兼容 base URL。"
+    },
+    "used_mock_fallback": {
+      "type": "boolean",
+      "description": "本次运行是否使用了 mock fallback。",
+      "default": false
+    },
+    "fallback_reason": {
+      "type": "string",
+      "description": "本次运行触发 fallback 的原因。"
+    },
+    "elapsed_ms": {
+      "type": "number",
+      "description": "本次运行累计耗时，单位毫秒。"
+    },
+    "result_status": {
+      "type": "string",
+      "enum": ["draft", "completed", "blocked", "needs_human"],
+      "description": "最近一次运行产物对应的结果状态。"
+    },
+    "result_summary": {
+      "type": "string",
+      "description": "最近一次运行结果摘要。"
+    },
+    "follow_up_items": {
+      "type": "array",
+      "description": "最近一次运行建议的后续事项。",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "blockers": {
+      "type": "array",
+      "description": "最近一次运行记录的阻塞项。",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "finding_count": {
+      "type": "integer",
+      "description": "最近一次运行结果中的 finding 数量。",
+      "default": 0
+    },
     "created_at": {
       "type": "string",
       "format": "date-time",
@@ -120,6 +262,20 @@
     }
   },
   "$defs": {
+    "runState": {
+      "type": "string",
+      "enum": [
+        "received",
+        "planning",
+        "retrieving_local_context",
+        "reasoning",
+        "validating_output",
+        "persisting_artifacts",
+        "completed",
+        "failed",
+        "awaiting_review"
+      ]
+    },
     "researchScope": {
       "type": "object",
       "additionalProperties": false,
@@ -268,6 +424,92 @@
         "related_task_id": {
           "type": "string",
           "description": "若有，可关联触发该证据的任务标识。"
+        }
+      }
+    },
+    "runEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["event_id", "state", "status", "message", "created_at"],
+      "properties": {
+        "event_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "state": {
+          "$ref": "#/$defs/runState"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["entered", "completed", "error", "warning", "fallback", "info"]
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1
+        },
+        "actor": {
+          "type": "string"
+        },
+        "detail": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "validationIssue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["stage", "kind", "message"],
+      "properties": {
+        "stage": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "type": "string",
+          "enum": ["parse_error", "validation_error", "repair_warning", "runtime_error"]
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1
+        },
+        "agent": {
+          "type": "string"
+        },
+        "detail": {
+          "type": "string"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "runtimeArtifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["artifact_id", "artifact_type", "title", "payload"],
+      "properties": {
+        "artifact_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "artifact_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "payload": {},
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
         }
       }
     },
