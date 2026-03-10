@@ -1,99 +1,75 @@
 # 当前状态快照
 
-本快照基于 2026-03-09 的仓库状态编写。
+本文档基于 2026-03-09 的仓库状态编写。
 
-## 后端
+## 已完成能力
 
-- 框架：FastAPI
-- 入口：`backend/app/main.py`
-- 路由聚合：`backend/app/api/api.py`
-- 当前激活路由：
-  - `backend/app/api/routes/competitions.py`
-  - `backend/app/api/routes/research_runtime.py`
-  - `backend/app/api/routes/agent_tasks.py`
-- 核心运行时 service：`backend/app/services/research_runtime_service.py`
-- ledger 仓储：`backend/app/repositories/ledger_repository.py`
-- 当前真实链路：
-  - `FastAPI route -> ResearchRuntimeService -> mock manager / Ark-only Agents SDK runtime -> LedgerRepository`
+后端：
 
-## Runtime 现状
-
-- 当前主任务类型：
+- FastAPI 已提供 `competitions`、`research-runtime`、`agent/tasks` 三组路由
+- 真实执行链路为 `FastAPI route -> ResearchRuntimeService -> mock manager / Ark-only Agents SDK runtime -> LedgerRepository`
+- 三类主任务已可运行：
   - `competition_recommendation`
   - `competition_eligibility_check`
   - `competition_timeline_plan`
 - legacy `research_plan` 仍保兼容
-- 当前已有显式状态机：
-  - `received`
-  - `planning`
-  - `retrieving_local_context`
-  - `reasoning`
-  - `validating_output`
-  - `persisting_artifacts`
-  - `completed`
-  - `failed`
-  - `awaiting_review`
-- 当前 ledger 已记录：
-  - `events`
-  - `artifacts`
-  - `raw_outputs`
-  - `repaired_outputs`
-  - `validation_errors`
-  - `parse_errors`
-  - `completed_states`
-  - `error_stage`
-  - `fallback_reason`
-  - `elapsed_ms`
+- 已有显式状态机、events、artifacts、历史列表、retry / cancel / review
+- 已有 output repair / validation 和本地领域数据 grounding
 
-## 数据与 grounding
+前端：
 
-- 原始竞赛数据：`backend/data/competitions.json`
-- 领域增强数据：
-  - `backend/data/competitions_enriched.json`
-  - `backend/data/eligibility_rules.json`
-  - `backend/data/recommendation_rubric.json`
-  - `backend/data/timeline_templates.json`
-- 当前不使用联网检索、RAG、向量数据库
+- 现有 competitions 页面仍保留
+- 已有最小 Agent 面板
+- 已支持状态轮询、事件时间线、artifacts、历史任务和控制入口
+- Phase 5C-mini 已把输入层补成 `简洁模式 / 高级模式` 双模式
 
-## API 现状
+评测：
 
-### 保持不变的竞赛接口
+- `backend/data/evals/` 已有本地数据集
+- `backend/scripts/run_eval.py` 可运行结构 + 质量混合回归
+
+## 当前输入层
+
+- `payload` 仍然是内部 canonical representation
+- `简洁模式` 只做输入适配，不改变 task API
+- `高级模式` 继续保留给调试、演示和评测
+- 附件当前只写入 `payload.attachments` 元数据，不代表 runtime 已消费
+
+## 当前 API
+
+竞赛 API：
 
 - `GET /api/competitions`
 - `GET /api/competitions/{id}`
 
-### 新增统一任务接口
+任务 API：
 
 - `POST /api/agent/tasks`
+- `GET /api/agent/tasks`
 - `GET /api/agent/tasks/{run_id}`
 - `GET /api/agent/tasks/{run_id}/events`
 - `GET /api/agent/tasks/{run_id}/artifacts`
+- `POST /api/agent/tasks/{run_id}/retry`
+- `POST /api/agent/tasks/{run_id}/cancel`
+- `POST /api/agent/tasks/{run_id}/review`
 
-### 旧兼容接口
+兼容 API：
 
 - `POST /api/research-runtime/run`
 - `GET /api/research-runtime/ledger/{ledger_id}`
 
-## 前端
+## 未完成能力
 
-- 框架：Vue 3 + Vite
-- 当前页面仍以竞赛列表与详情展示为主
-- 当前未改造现有页面
-- 已新增接入准备：
-  - `frontend/src/api/agent.ts`
-  - `frontend/src/types/agent.ts`
-  - `frontend/src/features/agent/README.md`
+- 没有完整聊天式输入层
+- 没有真正的多模态 runtime 消费
+- 没有 WebSocket
+- 没有 Redis / Celery / 消息队列
+- 没有真正 durable 的跨进程恢复
+- 没有完整的审批工作流
 
-## 测试与评测
+## 已知限制
 
-- 后端单元测试位于 `backend/app/tests/`
-- 当前已有 Phase 4A/4B 相关测试：
-  - task flows
-  - output repair
-  - ledger state machine
-  - agent task routes
-  - eval regression
-  - competitions routes
-  - research runtime compatibility
-- 本地评测数据位于 `backend/data/evals/`
-- 本地评测脚本：`backend/scripts/run_eval.py`
+- 背景执行仍基于进程内线程池
+- 取消是协作式取消，不是强制中断底层模型调用
+- 附件只是元数据预留位
+- 现有质量评测仍以本地规则和启发式 rubric 为主

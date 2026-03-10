@@ -3,7 +3,7 @@
     <div class="section-header">
       <div>
         <h3>结果产物</h3>
-        <p>任务终态后展示结构化 artifacts，便于前端卡片化接入。</p>
+        <p>任务终态后展示结构化产物，便于前端结果卡片化接入。</p>
       </div>
       <button
         v-if="runStatus"
@@ -12,7 +12,7 @@
         :disabled="loading"
         @click="$emit('refresh')"
       >
-        {{ loading ? '加载中...' : '刷新产物' }}
+        {{ loading ? '加载中…' : '刷新产物' }}
       </button>
     </div>
 
@@ -21,7 +21,12 @@
     </div>
 
     <div
-      v-else-if="!items.length && runStatus.status !== 'completed' && runStatus.status !== 'awaiting_review' && runStatus.status !== 'cancelled'"
+      v-else-if="
+        !items.length
+        && runStatus.status !== 'completed'
+        && runStatus.status !== 'awaiting_review'
+        && runStatus.status !== 'cancelled'
+      "
       class="empty-state"
     >
       任务结束后会在这里显示结构化结果。

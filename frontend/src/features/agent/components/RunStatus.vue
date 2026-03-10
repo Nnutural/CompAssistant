@@ -3,7 +3,7 @@
     <div class="section-header">
       <div>
         <h3>当前任务</h3>
-        <p>查看状态推进、fallback、审核提示和控制入口。</p>
+        <p>查看状态推进、降级信息、审核提示和控制入口。</p>
       </div>
       <button v-if="runStatus" class="refresh-btn" type="button" @click="$emit('refresh')">刷新</button>
     </div>
@@ -110,8 +110,8 @@
       </div>
 
       <div v-if="runStatus.used_mock_fallback || runStatus.fallback_reason" class="alert-box warning">
-        <strong>Fallback</strong>
-        <p>{{ runStatus.fallback_reason || '当前结果使用了 mock fallback。' }}</p>
+        <strong>降级信息</strong>
+        <p>{{ runStatus.fallback_reason || '当前结果使用了 mock 降级路径。' }}</p>
       </div>
 
       <div v-if="networkError" class="alert-box error">
@@ -148,7 +148,7 @@ const statusLabel = computed(() =>
 
 const currentStateLabel = computed(() => {
   if (!props.runStatus?.current_state) {
-    return '无'
+    return '暂无'
   }
   return STATE_LABELS[props.runStatus.current_state] ?? props.runStatus.current_state
 })

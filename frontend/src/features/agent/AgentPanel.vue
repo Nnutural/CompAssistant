@@ -178,7 +178,7 @@ async function refreshArtifacts() {
     artifactItems.value = response.items
     networkError.value = ''
   } catch (error) {
-    networkError.value = error instanceof Error ? error.message : '读取 artifacts 失败。'
+    networkError.value = error instanceof Error ? error.message : '读取产物失败。'
   } finally {
     isArtifactsLoading.value = false
   }

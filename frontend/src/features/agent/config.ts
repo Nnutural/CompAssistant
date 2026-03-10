@@ -4,6 +4,11 @@ import type {
   AgentTaskRunStatus,
   AgentTaskType,
 } from '../../types/agent'
+import type {
+  GradeValue,
+  SupportedAgentTaskType,
+  TeamModeValue,
+} from './input_adapter'
 
 export const AGENT_POLL_INTERVAL_MS = 1500
 export const AGENT_HISTORY_PAGE_SIZE = 8
@@ -15,10 +20,29 @@ export const TERMINAL_RUN_STATUSES: AgentTaskRunStatus[] = [
   'awaiting_review',
 ]
 
-export const AGENT_TASK_OPTIONS: Array<{ label: string; value: AgentTaskType }> = [
+export const AGENT_TASK_OPTIONS: Array<{ label: string; value: SupportedAgentTaskType }> = [
   { label: '竞赛推荐', value: 'competition_recommendation' },
   { label: '参赛资格判断', value: 'competition_eligibility_check' },
   { label: '时间线规划', value: 'competition_timeline_plan' },
+]
+
+export const INPUT_MODE_OPTIONS = [
+  { label: '简洁模式', value: 'simple' },
+  { label: '高级模式', value: 'advanced' },
+] as const
+
+export const GRADE_OPTIONS: Array<{ label: string; value: GradeValue }> = [
+  { label: '大一', value: 'freshman' },
+  { label: '大二', value: 'sophomore' },
+  { label: '大三', value: 'junior' },
+  { label: '大四', value: 'senior' },
+  { label: '研究生', value: 'graduate' },
+]
+
+export const TEAM_MODE_OPTIONS: Array<{ label: string; value: TeamModeValue }> = [
+  { label: '团队协作', value: 'team' },
+  { label: '个人参赛', value: 'individual' },
+  { label: '灵活/都可', value: 'flexible' },
 ]
 
 export const STATUS_LABELS: Record<AgentTaskRunStatus, string> = {
@@ -47,7 +71,7 @@ export const STATE_LABELS: Record<string, string> = {
 
 export const TASK_TYPE_LABELS: Record<string, string> = {
   competition_recommendation: '竞赛推荐',
-  competition_eligibility_check: '资格判断',
+  competition_eligibility_check: '参赛资格判断',
   competition_timeline_plan: '时间线规划',
   research_plan: '兼容研究任务',
 }
@@ -71,12 +95,12 @@ export const HISTORY_STATUS_OPTIONS: Array<{ label: string; value: '' | AgentTas
 ]
 
 const DEFAULT_TASK_DRAFTS: Record<
-  'competition_recommendation' | 'competition_eligibility_check' | 'competition_timeline_plan',
+  SupportedAgentTaskType,
   Pick<AgentTaskCreateRequest, 'task_type' | 'objective' | 'payload'>
 > = {
   competition_recommendation: {
     task_type: 'competition_recommendation',
-    objective: '为算法方向大一学生生成 grounded 竞赛推荐。',
+    objective: '为算法/编程方向的大一学生生成 grounded 竞赛推荐。',
     payload: {
       profile: {
         direction: '算法/编程',
@@ -92,7 +116,6 @@ const DEFAULT_TASK_DRAFTS: Record<
     payload: {
       competition_id: 14,
       profile: {
-        direction: '算法/编程',
         grade: 'freshman',
         ability_tags: ['algorithms', 'python', 'problem-solving'],
         preference_tags: ['team'],
@@ -101,7 +124,7 @@ const DEFAULT_TASK_DRAFTS: Record<
   },
   competition_timeline_plan: {
     task_type: 'competition_timeline_plan',
-    objective: '为目标竞赛截止日期生成倒排时间线计划。',
+    objective: '为目标竞赛生成截止日期前的倒排时间线计划。',
     payload: {
       competition_id: 24,
       deadline: '2026-06-20T18:00:00+00:00',
@@ -114,7 +137,7 @@ const DEFAULT_TASK_DRAFTS: Record<
 }
 
 export function buildDefaultTaskDraft(
-  taskType: 'competition_recommendation' | 'competition_eligibility_check' | 'competition_timeline_plan',
+  taskType: SupportedAgentTaskType,
 ): Pick<AgentTaskCreateRequest, 'task_type' | 'objective' | 'payload'> {
   const template = DEFAULT_TASK_DRAFTS[taskType]
   return {
@@ -122,4 +145,10 @@ export function buildDefaultTaskDraft(
     objective: template.objective,
     payload: JSON.parse(JSON.stringify(template.payload)),
   }
+}
+
+export function isSupportedAgentTaskType(value: AgentTaskType): value is SupportedAgentTaskType {
+  return value === 'competition_recommendation'
+    || value === 'competition_eligibility_check'
+    || value === 'competition_timeline_plan'
 }

@@ -3,7 +3,7 @@
     <aside class="sidebar">
       <div class="brand">
         <h1>CompAssistant</h1>
-        <p>大学生竞赛与智能体演示面板</p>
+        <p>大学生竞赛助手与智能体演示面板</p>
       </div>
 
       <nav class="menu">
@@ -104,6 +104,7 @@ textarea {
   margin-top: 8px;
   color: #6e6e73;
   font-size: 14px;
+  line-height: 1.5;
 }
 
 .menu {

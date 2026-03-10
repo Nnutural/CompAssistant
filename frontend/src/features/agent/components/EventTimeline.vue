@@ -36,7 +36,7 @@ defineProps<{
 }>()
 
 function formatDate(value: string) {
-  return new Date(value).toLocaleString()
+  return new Date(value).toLocaleString('zh-CN')
 }
 
 function stateLabel(state: string) {

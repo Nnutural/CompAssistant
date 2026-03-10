@@ -6,7 +6,7 @@
         <p>支持按状态和任务类型筛选，并可切换查看历史运行记录。</p>
       </div>
       <button class="refresh-btn" type="button" :disabled="loading" @click="$emit('refresh')">
-        {{ loading ? '刷新中...' : '刷新列表' }}
+        {{ loading ? '刷新中…' : '刷新列表' }}
       </button>
     </div>
 
@@ -57,7 +57,7 @@
           <span>{{ formatDate(item.updated_at || item.created_at) }}</span>
           <span v-if="item.has_artifacts">有产物</span>
           <span v-if="item.awaiting_review">待审核</span>
-          <span v-if="item.used_mock_fallback">Fallback</span>
+          <span v-if="item.used_mock_fallback">已降级</span>
         </div>
 
         <div class="history-actions">
@@ -83,7 +83,7 @@ import {
   TASK_TYPE_LABELS,
 } from '../config'
 
-const props = defineProps<{
+defineProps<{
   items: AgentTaskHistoryItem[]
   total: number
   loading: boolean
@@ -126,7 +126,7 @@ function taskLabel(taskType?: string | null) {
 }
 
 function formatDate(value: string) {
-  return new Date(value).toLocaleString()
+  return new Date(value).toLocaleString('zh-CN')
 }
 </script>
 

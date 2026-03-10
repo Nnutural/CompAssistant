@@ -19,10 +19,41 @@ npm run dev
 
 1. 打开前端页面。
 2. 点击侧栏 `智能体面板`。
-3. 保留默认模板，点击 `创建任务`。
-4. 观察页面立刻显示 `run_id` 与 `排队中`。
-5. 等待状态推进到终态。
-6. 查看时间线、artifacts 与历史任务列表。
+3. 保持 `简洁模式`，选择一个任务类型。
+4. 填写自然表单，确认页面中已展示“将要提交的 objective / payload 预览”。
+5. 点击 `创建任务`。
+6. 确认页面立即显示 `run_id` 和 `排队中`。
+7. 继续观察状态、事件时间线、结果产物和历史任务列表。
+
+## 使用简洁模式
+
+适用场景：
+
+- 面向普通演示
+- 不希望直接暴露 payload schema
+- 需要快速生成合规输入
+
+行为说明：
+
+- 简洁模式只负责输入适配
+- 最终仍然会生成 `objective + payload`
+- 生成结果会在提交前显示预览
+- 竞赛选择会优先按名称搜索，但最终仍提交 canonical `competition_id`
+
+## 使用高级模式
+
+适用场景：
+
+- 调试
+- 回归测试
+- 精确构造 case
+
+行为说明：
+
+- 保留原始 `objective + payload JSON` 编辑体验
+- payload 仍是内部 canonical representation
+- 从简洁模式切换到高级模式时，会把当前简洁表单生成的请求同步到编辑器
+- 高级模式中的自定义 JSON 会被本地保留，并可恢复上次草稿
 
 ## 查看任务状态
 
@@ -37,6 +68,12 @@ npm run dev
 - `GET /api/agent/tasks?status=awaiting_review`
 - `GET /api/agent/tasks?task_type=competition_recommendation`
 - `GET /api/agent/tasks?limit=10&offset=0`
+
+如需核对后端实际收到的请求：
+
+- 先读取 `GET /api/agent/tasks/{run_id}` 拿到 `ledger_id`
+- 再读 `GET /api/research-runtime/ledger/{ledger_id}`
+- 核对其中的 `request_objective` 和 `request_payload`
 
 ## Retry
 
@@ -57,7 +94,7 @@ curl -X POST http://127.0.0.1:8000/api/agent/tasks/{run_id}/retry
 
 - 创建新的 run
 - 新 run 立即进入 `queued`
-- 新 run 与原 run 的关系会写入 ledger / events / control_records
+- 与原 run 的关系会写入 ledger / events / control_records
 
 ## Cancel
 
@@ -116,7 +153,7 @@ curl -X POST http://127.0.0.1:8000/api/agent/tasks/{run_id}/review ^
 
 - `accept`：任务转为 `completed`
 - `reject`：任务转为 `failed`
-- `annotate`：任务保持 `awaiting_review`，但写入审核备注和事件
+- `annotate`：任务保持 `awaiting_review`，但会写入审核备注和事件
 
 ## 评测
 
@@ -124,7 +161,7 @@ curl -X POST http://127.0.0.1:8000/api/agent/tasks/{run_id}/review ^
 backend\.venv\Scripts\python backend/scripts/run_eval.py --runtime-mode mock
 ```
 
-如果需要看完整报告：
+完整 JSON 报告：
 
 ```bash
 backend\.venv\Scripts\python backend/scripts/run_eval.py --runtime-mode mock --json
