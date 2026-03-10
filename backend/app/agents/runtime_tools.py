@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from app.agents.schema_adapter import provider_function_tool
 from app.schemas.research_runtime import AgentTaskEnvelope, EvidenceRecord, FindingItem, ResearchLedger, SourceRecord
 from app.tools import (
     build_timeline_template,
@@ -217,12 +218,7 @@ def build_critic_tools() -> list[Any]:
 
 
 def build_recommendation_tools() -> list[Any]:
-    try:
-        from agents import function_tool
-    except ImportError as exc:
-        raise RuntimeError('openai-agents is not installed') from exc
-
-    @function_tool(
+    @provider_function_tool(
         name_override='filter_competitions_by_profile',
         description_override='Return locally filtered competitions and score breakdowns for the provided profile.',
     )
@@ -232,7 +228,7 @@ def build_recommendation_tools() -> list[Any]:
     ) -> dict[str, Any]:
         return unwrap_tool_result(filter_competitions_by_profile(profile), 'filter_competitions_by_profile')
 
-    @function_tool(
+    @provider_function_tool(
         name_override='compose_recommendation_rationale',
         description_override='Compose short recommendation reasons and risk notes from a competition and score result.',
     )
@@ -250,12 +246,7 @@ def build_recommendation_tools() -> list[Any]:
 
 
 def build_eligibility_tools() -> list[Any]:
-    try:
-        from agents import function_tool
-    except ImportError as exc:
-        raise RuntimeError('openai-agents is not installed') from exc
-
-    @function_tool(
+    @provider_function_tool(
         name_override='load_competition_by_id',
         description_override='Load a locally enriched competition record by id.',
     )
@@ -265,7 +256,7 @@ def build_eligibility_tools() -> list[Any]:
     ) -> dict[str, Any]:
         return unwrap_tool_result(load_competition_by_id(competition_id), 'load_competition_by_id')
 
-    @function_tool(
+    @provider_function_tool(
         name_override='check_eligibility_rules',
         description_override='Check local eligibility and suitability rules for a competition and profile.',
     )
@@ -280,12 +271,7 @@ def build_eligibility_tools() -> list[Any]:
 
 
 def build_timeline_tools() -> list[Any]:
-    try:
-        from agents import function_tool
-    except ImportError as exc:
-        raise RuntimeError('openai-agents is not installed') from exc
-
-    @function_tool(
+    @provider_function_tool(
         name_override='build_timeline_template',
         description_override='Build a local reverse timeline plan from competition id, deadline, and constraints.',
     )
@@ -300,7 +286,7 @@ def build_timeline_tools() -> list[Any]:
             'build_timeline_template',
         )
 
-    @function_tool(
+    @provider_function_tool(
         name_override='score_competition_match',
         description_override='Score a local competition match against the current profile to decide workload stretch.',
     )

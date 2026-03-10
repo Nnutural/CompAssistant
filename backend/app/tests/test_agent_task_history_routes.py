@@ -122,6 +122,8 @@ class AgentTaskHistoryRouteTests(unittest.TestCase):
         self.assertEqual(awaiting_review.total, 1)
         self.assertEqual(awaiting_review.items[0].run_id, "run-history-002")
         self.assertTrue(awaiting_review.items[0].awaiting_review)
+        self.assertEqual(awaiting_review.items[0].requested_runtime_mode, "mock")
+        self.assertEqual(awaiting_review.items[0].effective_runtime_mode, "mock")
         self.assertIn("review_accept", awaiting_review.items[0].available_actions)
 
         timeline_only = AgentTaskHistoryResponse.model_validate(

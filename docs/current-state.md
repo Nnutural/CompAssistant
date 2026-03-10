@@ -28,8 +28,16 @@
 
 - `backend/data/evals/` 已有本地样例
 - `backend/scripts/run_eval.py` 可运行结构 + 质量混合回归
+- `backend/scripts/run_eval_agents_sdk.py` 可单独产出真实 Ark 路径评测
 - 前端已有最小 Playwright browser smoke
 - 已补 demo fixtures、demo checklist 和演示文档
+
+运行语义：
+
+- 正式 runtime mode 只有 `mock` 与 `agents_sdk`
+- `live` 不再作为可接受模式，继续使用会直接报错
+- 每个 run 都会记录 `requested_runtime_mode / effective_runtime_mode / effective_model`
+- 若真实 provider 失败并降级到 mock，会记录 `used_mock_fallback=true` 与 `fallback_reason`
 
 ## 当前边界
 
@@ -37,6 +45,7 @@
 - Simple Mode 只是输入适配层，不改变 task API
 - attachments 仍只写入 `payload.attachments` 元数据
 - competitions API 继续保持可用
+- `completed` 需要结合 `effective_runtime_mode` 与 `used_mock_fallback` 解读，不能直接等价为“Ark 直出成功”
 
 ## 未完成能力
 
@@ -51,6 +60,7 @@
 
 - 背景执行仍基于进程内线程池
 - `cancel` 是协作式取消，不是强制打断底层模型调用
-- 浏览器级 smoke 当前只覆盖一条 recommendation happy path 和一次 retry 动作
-- `review` 仍以最小 operator 动作为主，未纳入自动化 smoke
+- 浏览器级 smoke 当前覆盖 recommendation happy path、一次 retry，以及一条 review 失败 detail 展示
+- `cancel` 仍未纳入浏览器级自动化 smoke
 - 附件只是输入占位元数据，不代表已完成完整多模态推理
+- `agents_sdk` 路径的 structured output 仍依赖 provider-compatible schema sanitizer，更多 provider 差异仍可能触发 fallback

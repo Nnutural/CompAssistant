@@ -43,6 +43,8 @@ class AgentsSDKResearchRuntime:
         openai_api_key: str | None,
         openai_base_url: str | None = None,
         tracing_enabled: bool,
+        schema_debug_enabled: bool = False,
+        provider_timeout_seconds: float = 45.0,
         session_db_path: str | None = None,
         assembler: ResearchResultAssembler | None = None,
     ):
@@ -50,6 +52,8 @@ class AgentsSDKResearchRuntime:
         self.openai_api_key = openai_api_key or None
         self.openai_base_url = openai_base_url or None
         self.tracing_enabled = tracing_enabled
+        self.schema_debug_enabled = schema_debug_enabled
+        self.provider_timeout_seconds = provider_timeout_seconds
         self.session_db_path = resolve_session_db_path(session_db_path)
         self.assembler = assembler or ResearchResultAssembler()
 
@@ -70,13 +74,14 @@ class AgentsSDKResearchRuntime:
 
         runtime_started_at = perf_counter()
         logger.info(
-            "[research-runtime] agents_sdk runtime start task_id=%s ledger_id=%s model=%s base_url=%s tracing=%s session_db=%s",
+            "[research-runtime] agents_sdk runtime start task_id=%s ledger_id=%s model=%s base_url=%s tracing=%s session_db=%s timeout=%s",
             task.task_id,
             ledger.ledger_id,
             self.model,
             self.openai_base_url,
             self.tracing_enabled,
             self.session_db_path,
+            self.provider_timeout_seconds,
         )
         self._configure_sdk()
         started_at = datetime.now(timezone.utc)
@@ -96,6 +101,7 @@ class AgentsSDKResearchRuntime:
             session_db_path=self.session_db_path,
             tracing_enabled=self.tracing_enabled,
             base_url=self.openai_base_url,
+            schema_debug_enabled=self.schema_debug_enabled,
         )
         context.session_ids["manager"] = f"{task.session_id}-manager"
         if manager_trace_id:
@@ -153,7 +159,12 @@ class AgentsSDKResearchRuntime:
         _abort_if_requested(ledger, abort_if_requested)
 
         completed_at = datetime.now(timezone.utc)
-        runtime_metadata = factory.build_runtime_metadata(context)
+        runtime_metadata = factory.build_runtime_metadata(
+            context,
+            requested_runtime_mode="agents_sdk",
+            effective_runtime_mode="agents_sdk",
+            effective_model=self.model,
+        )
         if task.task_type in {
             "competition_recommendation",
             "competition_eligibility_check",
@@ -223,14 +234,16 @@ class AgentsSDKResearchRuntime:
 
     def _configure_sdk(self) -> None:
         logger.info(
-            "[research-runtime] configuring Ark chat_completions client base_url=%s tracing=%s session_db=%s",
+            "[research-runtime] configuring Ark chat_completions client base_url=%s tracing=%s session_db=%s timeout=%s",
             self.openai_base_url,
             self.tracing_enabled,
             self.session_db_path,
+            self.provider_timeout_seconds,
         )
         custom_client = AsyncOpenAI(
             api_key=self.openai_api_key,
             base_url=self.openai_base_url,
+            timeout=self.provider_timeout_seconds,
         )
         set_default_openai_client(custom_client, use_for_tracing=False)
         set_default_openai_api("chat_completions")

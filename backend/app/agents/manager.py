@@ -309,12 +309,21 @@ class ResearchResultAssembler:
 
     def _append_runtime_metadata(self, ledger: ResearchLedger, runtime_metadata: Mapping[str, Any]) -> None:
         metadata_notes = []
+        requested_runtime_mode = runtime_metadata.get("requested_runtime_mode")
+        if requested_runtime_mode:
+            metadata_notes.append(f"requested runtime mode: {requested_runtime_mode}")
         mode = runtime_metadata.get("mode")
         if mode:
             metadata_notes.append(f"runtime mode: {mode}")
+        effective_runtime_mode = runtime_metadata.get("effective_runtime_mode")
+        if effective_runtime_mode:
+            metadata_notes.append(f"effective runtime mode: {effective_runtime_mode}")
         model = runtime_metadata.get("model")
         if model:
             metadata_notes.append(f"runtime model: {model}")
+        effective_model = runtime_metadata.get("effective_model")
+        if effective_model:
+            metadata_notes.append(f"effective model: {effective_model}")
         base_url = runtime_metadata.get("base_url")
         if base_url:
             metadata_notes.append(f"runtime base url: {base_url}")
@@ -348,8 +357,14 @@ class ResearchResultAssembler:
             if note not in ledger.synthesis_notes:
                 ledger.synthesis_notes.append(note)
 
+        if requested_runtime_mode:
+            ledger.requested_runtime_mode = str(requested_runtime_mode)
+        if effective_runtime_mode:
+            ledger.effective_runtime_mode = str(effective_runtime_mode)
         if model:
             ledger.model = model
+        if effective_model:
+            ledger.effective_model = str(effective_model)
         if base_url:
             ledger.base_url = base_url
         if "used_mock_fallback" in runtime_metadata:
@@ -450,7 +465,16 @@ class ResearchRuntimeManager:
                 review_message=review_message,
                 follow_up_items=follow_up_items,
                 blockers=[],
-                runtime_metadata={"mode": "mock"},
+                runtime_metadata={
+                    "mode": "mock",
+                    "requested_runtime_mode": ledger.requested_runtime_mode or "mock",
+                    "effective_runtime_mode": "mock",
+                    "effective_model": "mock",
+                    "model": ledger.model or "mock",
+                    "base_url": ledger.base_url,
+                    "used_mock_fallback": ledger.used_mock_fallback,
+                    "fallback_reason": ledger.fallback_reason,
+                },
             )
             if review_required:
                 mark_review_required(
@@ -501,7 +525,16 @@ class ResearchRuntimeManager:
             summary=summary,
             follow_up_items=follow_up_items,
             blockers=[],
-            runtime_metadata={"mode": "mock"},
+            runtime_metadata={
+                "mode": "mock",
+                "requested_runtime_mode": ledger.requested_runtime_mode or "mock",
+                "effective_runtime_mode": "mock",
+                "effective_model": "mock",
+                "model": ledger.model or "mock",
+                "base_url": ledger.base_url,
+                "used_mock_fallback": ledger.used_mock_fallback,
+                "fallback_reason": ledger.fallback_reason,
+            },
         )
         logger.info(
             "[research-runtime] mock manager completed legacy task_id=%s ledger_id=%s directions=%s evidence=%s findings=%s elapsed_ms=%.2f",

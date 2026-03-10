@@ -152,6 +152,7 @@ class AgentsSDKResearchRuntimeTests(unittest.TestCase):
         async_client_cls.assert_called_once_with(
             api_key='test-key',
             base_url='https://ark.cn-beijing.volces.com/api/v3',
+            timeout=45.0,
         )
         set_client_mock.assert_called_once_with(async_client_cls.return_value, use_for_tracing=False)
 
@@ -277,6 +278,7 @@ class AgentsSDKResearchRuntimeTests(unittest.TestCase):
         async_client_cls.assert_called_once_with(
             api_key='test-key',
             base_url='https://ark.cn-beijing.volces.com/api/v3',
+            timeout=45.0,
         )
         set_client_mock.assert_called_once_with(async_client_cls.return_value, use_for_tracing=False)
 
@@ -309,6 +311,7 @@ class AgentsSDKResearchRuntimeTests(unittest.TestCase):
         async_client_cls.assert_called_once_with(
             api_key='test-key',
             base_url='https://ark.cn-beijing.volces.com/api/v3',
+            timeout=45.0,
         )
         set_client_mock.assert_called_once_with(async_client_cls.return_value, use_for_tracing=False)
 

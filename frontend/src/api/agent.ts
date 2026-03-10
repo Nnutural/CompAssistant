@@ -16,26 +16,25 @@ const agentApi = axios.create({
   baseURL: '/api',
 })
 
-export async function createAgentTask(
-  request: AgentTaskCreateRequest,
-): Promise<AgentTaskStatusResponse> {
-  const response = await agentApi.post<AgentTaskStatusResponse>('/agent/tasks', request)
-  return response.data
+agentApi.interceptors.response.use(
+  (response) => response,
+  (error: unknown) => Promise.reject(normalizeAgentApiError(error)),
+)
+
+export async function createAgentTask(request: AgentTaskCreateRequest): Promise<AgentTaskStatusResponse> {
+  return (await agentApi.post<AgentTaskStatusResponse>('/agent/tasks', request)).data
 }
 
 export async function getAgentTaskStatus(runId: string): Promise<AgentTaskStatusResponse> {
-  const response = await agentApi.get<AgentTaskStatusResponse>(`/agent/tasks/${runId}`)
-  return response.data
+  return (await agentApi.get<AgentTaskStatusResponse>(`/agent/tasks/${runId}`)).data
 }
 
 export async function getAgentTaskEvents(runId: string): Promise<AgentTaskEventsResponse> {
-  const response = await agentApi.get<AgentTaskEventsResponse>(`/agent/tasks/${runId}/events`)
-  return response.data
+  return (await agentApi.get<AgentTaskEventsResponse>(`/agent/tasks/${runId}/events`)).data
 }
 
 export async function getAgentTaskArtifacts(runId: string): Promise<AgentTaskArtifactsResponse> {
-  const response = await agentApi.get<AgentTaskArtifactsResponse>(`/agent/tasks/${runId}/artifacts`)
-  return response.data
+  return (await agentApi.get<AgentTaskArtifactsResponse>(`/agent/tasks/${runId}/artifacts`)).data
 }
 
 export async function listAgentTasks(params?: {
@@ -44,29 +43,25 @@ export async function listAgentTasks(params?: {
   limit?: number
   offset?: number
 }): Promise<AgentTaskHistoryResponse> {
-  const response = await agentApi.get<AgentTaskHistoryResponse>('/agent/tasks', { params })
-  return response.data
+  return (await agentApi.get<AgentTaskHistoryResponse>('/agent/tasks', { params })).data
 }
 
 export async function retryAgentTask(runId: string): Promise<AgentTaskRetryResponse> {
-  const response = await agentApi.post<AgentTaskRetryResponse>(`/agent/tasks/${runId}/retry`)
-  return response.data
+  return (await agentApi.post<AgentTaskRetryResponse>(`/agent/tasks/${runId}/retry`)).data
 }
 
 export async function cancelAgentTask(
   runId: string,
   request: AgentTaskCancelRequest,
 ): Promise<AgentTaskControlResponse> {
-  const response = await agentApi.post<AgentTaskControlResponse>(`/agent/tasks/${runId}/cancel`, request)
-  return response.data
+  return (await agentApi.post<AgentTaskControlResponse>(`/agent/tasks/${runId}/cancel`, request)).data
 }
 
 export async function reviewAgentTask(
   runId: string,
   request: AgentTaskReviewRequest,
 ): Promise<AgentTaskControlResponse> {
-  const response = await agentApi.post<AgentTaskControlResponse>(`/agent/tasks/${runId}/review`, request)
-  return response.data
+  return (await agentApi.post<AgentTaskControlResponse>(`/agent/tasks/${runId}/review`, request)).data
 }
 
 export const agentTaskApi = {
@@ -78,4 +73,25 @@ export const agentTaskApi = {
   retryTask: retryAgentTask,
   cancelTask: cancelAgentTask,
   reviewTask: reviewAgentTask,
+}
+
+function normalizeAgentApiError(error: unknown): Error {
+  if (!axios.isAxiosError(error)) {
+    return error instanceof Error ? error : new Error('未知请求错误。')
+  }
+
+  const detail = error.response?.data?.detail
+  if (typeof detail === 'string' && detail.trim()) {
+    return new Error(detail)
+  }
+
+  if (detail && typeof detail === 'object') {
+    return new Error(JSON.stringify(detail))
+  }
+
+  if (typeof error.message === 'string' && error.message.trim()) {
+    return new Error(error.message)
+  }
+
+  return new Error('请求失败。')
 }

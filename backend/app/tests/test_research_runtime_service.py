@@ -85,6 +85,9 @@ class ResearchRuntimeServiceTests(unittest.TestCase):
         self.assertGreaterEqual(len(ledger.task_history), 1)
         self.assertGreaterEqual(len(ledger.evidence_log), 1)
         self.assertGreaterEqual(len(ledger.final_artifacts), 1)
+        self.assertEqual(ledger.requested_runtime_mode, 'mock')
+        self.assertEqual(ledger.effective_runtime_mode, 'mock')
+        self.assertEqual(ledger.effective_model, 'mock')
         self.assertIn('runtime mode: mock', ledger.synthesis_notes)
 
     def test_run_task_uses_agents_sdk_runtime_when_enabled(self) -> None:
@@ -109,6 +112,9 @@ class ResearchRuntimeServiceTests(unittest.TestCase):
         ledger = service.get_ledger('ledger-session-phase2-001')
         self.assertIsNotNone(ledger)
         self.assertGreaterEqual(len(ledger.task_history), 1)
+        self.assertEqual(ledger.requested_runtime_mode, 'agents_sdk')
+        self.assertEqual(ledger.effective_runtime_mode, 'agents_sdk')
+        self.assertEqual(ledger.effective_model, 'deepseek-v3-2-251201')
         self.assertIn('runtime mode: agents_sdk', ledger.synthesis_notes)
         self.assertIn('runtime base url: https://ark.cn-beijing.volces.com/api/v3', ledger.synthesis_notes)
         self.assertIn('used mock fallback: false', ledger.synthesis_notes)
@@ -131,6 +137,9 @@ class ResearchRuntimeServiceTests(unittest.TestCase):
         self.assertIn('Returned mock-derived result because Ark chat-completions runtime failed', result.follow_up_items[0])
         ledger = service.get_ledger('ledger-session-phase2-001')
         self.assertIsNotNone(ledger)
+        self.assertEqual(ledger.requested_runtime_mode, 'agents_sdk')
+        self.assertEqual(ledger.effective_runtime_mode, 'mock')
+        self.assertEqual(ledger.effective_model, 'mock')
         self.assertIn('runtime mode: mock', ledger.synthesis_notes)
         self.assertIn('runtime model: deepseek-v3-2-251201', ledger.synthesis_notes)
         self.assertIn('runtime base url: https://ark.cn-beijing.volces.com/api/v3', ledger.synthesis_notes)
@@ -178,6 +187,10 @@ class ResearchRuntimeServiceTests(unittest.TestCase):
         self.assertIsNotNone(ledger)
         self.assertIn('used mock fallback: true', ledger.synthesis_notes)
         self.assertTrue(ledger.used_mock_fallback)
+
+    def test_service_rejects_deprecated_live_runtime_mode(self) -> None:
+        with self.assertRaisesRegex(ValueError, "runtime_mode='live' is deprecated"):
+            ResearchRuntimeService(repository=self.repository, runtime_mode='live')
 
 
 if __name__ == '__main__':

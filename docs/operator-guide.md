@@ -15,6 +15,15 @@ set RESEARCH_RUNTIME_MODE=mock
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
+如需验证真实 Ark 路径，请显式使用：
+
+```bash
+set RESEARCH_RUNTIME_MODE=agents_sdk
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+不要再使用 `RESEARCH_RUNTIME_MODE=live`。该别名已废弃并会直接报错。
+
 ## 启动前端
 
 ```bash
@@ -48,6 +57,7 @@ npm run test:e2e
 - 提交任务
 - 查看状态、事件、artifacts、历史
 - 执行一次 retry
+- 验证一次 review 失败 detail 的页面展示
 - 回到 competitions 页面
 
 ## 跑一个最小 demo
@@ -60,6 +70,23 @@ npm run test:e2e
 6. 点击 `创建任务`。
 7. 确认页面立即显示 `run_id` 和 `排队中`。
 8. 继续观察状态、事件时间线、结果产物和最近任务列表。
+
+## 如何解释运行结果
+
+推荐先看 `GET /api/agent/tasks/{run_id}` 中的以下字段：
+
+- `requested_runtime_mode`
+- `effective_runtime_mode`
+- `effective_model`
+- `used_mock_fallback`
+- `fallback_reason`
+
+解释规则：
+
+- `requested_runtime_mode=mock`：本次本来就只跑 mock
+- `requested_runtime_mode=agents_sdk` 且 `effective_runtime_mode=agents_sdk`：本次最终由 Ark 路径产出
+- `requested_runtime_mode=agents_sdk` 且 `effective_runtime_mode=mock`：本次 Ark 路径失败后降级到了 mock
+- `completed` 不能单独解释为“Ark 真实成功”，必须结合上面几个字段一起看
 
 ## Simple Mode
 
@@ -103,6 +130,12 @@ npm run test:e2e
 - `recommendation-001`
 - `eligibility-009`
 - `timeline-001`
+
+若要专门验证真实 Ark 路径，请优先使用较小样本集，并观察是否出现 fallback：
+
+```bash
+backend\.venv\Scripts\python backend/scripts/run_eval_agents_sdk.py --sample-per-task-type 3
+```
 
 每条 case 都包含：
 
@@ -209,3 +242,9 @@ curl -X POST http://127.0.0.1:8000/api/agent/tasks/{run_id}/review ^
 - `accept`：任务转为 `completed`
 - `reject`：任务转为 `failed`
 - `annotate`：任务保持 `awaiting_review`，但会写入审核备注和事件
+
+## 当前已知边界
+
+- `cancel` 仍是协作式取消，不是强制终止 provider 调用
+- `attachments` 只会记录到 `payload.attachments`，不会被 runtime 消费
+- `queued / running` 任务不支持跨进程恢复

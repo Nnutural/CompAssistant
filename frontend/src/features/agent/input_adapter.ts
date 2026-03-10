@@ -312,7 +312,7 @@ function buildTimelineRequest(
 
   return {
     task_type: 'competition_timeline_plan',
-    objective: `为 ${competitionLabel} 生成截止到 ${form.deadline.trim() || '目标截止日期'} 的倒排时间计划，并结合当前阶段与每周投入给出里程碑。`,
+    objective: `为 ${competitionLabel} 生成截止到 ${form.deadline.trim() || '目标截止日期'} 的倒排时间线计划，并结合当前阶段与每周投入给出里程碑。`,
     payload,
     dry_run: false,
   }
@@ -322,9 +322,9 @@ function buildRecommendationObjective(form: RecommendationSimpleForm): string {
   const direction = form.direction.trim() || '当前方向'
   const notes = form.extra_notes.trim()
   if (notes) {
-    return `为 ${gradeLabel(form.grade)}、方向为 ${direction} 的学生推荐适合参加的竞赛，并结合补充说明给出理由和风险：${notes}`
+    return `为${gradeLabel(form.grade)}、方向为 ${direction} 的学生推荐适合参加的竞赛，并结合补充说明给出理由和风险：${notes}`
   }
-  return `为 ${gradeLabel(form.grade)}、方向为 ${direction} 的学生推荐适合参加的竞赛，并给出理由和风险提示。`
+  return `为${gradeLabel(form.grade)}、方向为 ${direction} 的学生推荐适合参加的竞赛，并给出理由和风险提示。`
 }
 
 function getCompetitionLabel(

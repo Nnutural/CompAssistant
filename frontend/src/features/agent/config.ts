@@ -4,11 +4,7 @@ import type {
   AgentTaskRunStatus,
   AgentTaskType,
 } from '../../types/agent'
-import type {
-  GradeValue,
-  SupportedAgentTaskType,
-  TeamModeValue,
-} from './input_adapter'
+import type { GradeValue, SupportedAgentTaskType, TeamModeValue } from './input_adapter'
 
 export const AGENT_POLL_INTERVAL_MS = 1500
 export const AGENT_HISTORY_PAGE_SIZE = 8
@@ -149,7 +145,9 @@ export function buildDefaultTaskDraft(
 }
 
 export function isSupportedAgentTaskType(value: AgentTaskType): value is SupportedAgentTaskType {
-  return value === 'competition_recommendation'
+  return (
+    value === 'competition_recommendation'
     || value === 'competition_eligibility_check'
     || value === 'competition_timeline_plan'
+  )
 }

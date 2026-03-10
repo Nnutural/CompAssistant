@@ -18,6 +18,8 @@ export type AgentTaskRunStatus =
   | 'cancelled'
   | 'failed'
   | 'awaiting_review'
+
+export type AgentRuntimeMode = 'mock' | 'agents_sdk'
 export type AgentTaskControlAction =
   | 'retry'
   | 'cancel'
@@ -74,6 +76,9 @@ export interface AgentTaskStatusResponse {
   completed_states: AgentRunState[]
   error_stage?: AgentRunState | null
   result: AgentTaskResultSummary
+  requested_runtime_mode?: string | null
+  effective_runtime_mode?: AgentRuntimeMode | null
+  effective_model?: string | null
   used_mock_fallback: boolean
   fallback_reason?: string | null
   elapsed_ms?: number | null
@@ -134,6 +139,9 @@ export interface AgentTaskHistoryItem {
   artifact_count: number
   has_artifacts: boolean
   awaiting_review: boolean
+  requested_runtime_mode?: string | null
+  effective_runtime_mode?: AgentRuntimeMode | null
+  effective_model?: string | null
   used_mock_fallback: boolean
   parent_run_id?: string | null
   available_actions: AgentTaskControlAction[]

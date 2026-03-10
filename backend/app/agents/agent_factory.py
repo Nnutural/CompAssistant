@@ -7,6 +7,8 @@ from typing import Any, Callable, TypeVar
 
 from pydantic import BaseModel
 
+from app.agents.run_state import record_issue, record_output
+from app.agents.schema_adapter import build_provider_output_schema, collect_agent_schema_debug
 from app.agents.competition_recommender import (
     build_competition_recommender_agent_with_mode,
 )
@@ -52,13 +54,22 @@ logger = logging.getLogger("uvicorn.error")
 
 
 class ResearchAgentFactory:
-    def __init__(self, *, model: str, session_db_path: str, tracing_enabled: bool, base_url: str | None = None):
+    def __init__(
+        self,
+        *,
+        model: str,
+        session_db_path: str,
+        tracing_enabled: bool,
+        base_url: str | None = None,
+        schema_debug_enabled: bool = False,
+    ):
         if not AGENTS_SDK_AVAILABLE:
             raise RuntimeError("openai-agents is not installed")
         self.model = model
         self.session_db_path = session_db_path
         self.tracing_enabled = tracing_enabled
         self.base_url = base_url or ""
+        self.schema_debug_enabled = schema_debug_enabled
 
     def build_manager_agent(self, *, structured: bool = True):
         instructions = (
@@ -90,7 +101,7 @@ class ResearchAgentFactory:
                 self._build_evidence_tool(),
                 self._build_critic_tool(),
             ],
-            output_type=ManagerAgentOutput if structured else None,
+            output_type=build_provider_output_schema(ManagerAgentOutput) if structured else None,
             instructions=instructions,
         )
 
@@ -332,6 +343,9 @@ class ResearchAgentFactory:
         self,
         context: ResearchAgentContext,
         *,
+        requested_runtime_mode: str = "agents_sdk",
+        effective_runtime_mode: str = "agents_sdk",
+        effective_model: str | None = None,
         used_mock_fallback: bool = False,
         fallback_reason: str | None = None,
     ) -> dict[str, Any]:
@@ -339,7 +353,10 @@ class ResearchAgentFactory:
         specialist_traces = {key: value for key, value in context.trace_ids.items() if key != "manager"}
         return {
             "mode": "agents_sdk",
+            "requested_runtime_mode": requested_runtime_mode,
+            "effective_runtime_mode": effective_runtime_mode,
             "model": self.model,
+            "effective_model": effective_model or self.model,
             "base_url": self.base_url,
             "tracing_enabled": self.tracing_enabled,
             "used_mock_fallback": used_mock_fallback,
@@ -382,6 +399,11 @@ class ResearchAgentFactory:
                 context.task.task_id,
             )
             structured_agent = build_agent(True)
+            self._record_agent_schema(
+                ledger=context.ledger,
+                stage=f"{stage_name}:structured_schema",
+                agent=structured_agent,
+            )
             raw_output = self._run_agent_once(
                 agent_name=agent_name,
                 agent=structured_agent,
@@ -408,6 +430,13 @@ class ResearchAgentFactory:
             )
             return output
         except Exception as structured_error:
+            self._record_runtime_exception(
+                ledger=context.ledger,
+                stage=stage_name,
+                agent_name=agent_name,
+                exc=structured_error,
+                path_label="structured",
+            )
             logger.warning(
                 "[research-runtime] %s structured run failed task_id=%s error=%s; trying plain JSON fallback",
                 agent_name,
@@ -416,6 +445,11 @@ class ResearchAgentFactory:
             )
             plain_json_agent = build_agent(False)
             try:
+                self._record_agent_schema(
+                    ledger=context.ledger,
+                    stage=f"{stage_name}:json_schema",
+                    agent=plain_json_agent,
+                )
                 raw_output = self._run_agent_once(
                     agent_name=agent_name,
                     agent=plain_json_agent,
@@ -442,6 +476,13 @@ class ResearchAgentFactory:
                 )
                 return output
             except Exception as fallback_error:
+                self._record_runtime_exception(
+                    ledger=context.ledger,
+                    stage=stage_name,
+                    agent_name=agent_name,
+                    exc=fallback_error,
+                    path_label="json_fallback",
+                )
                 logger.error(
                     "[research-runtime] %s JSON fallback failed task_id=%s elapsed_ms=%.2f error=%s",
                     agent_name,
@@ -453,6 +494,40 @@ class ResearchAgentFactory:
                     f"{agent_name} failed in structured mode and JSON fallback mode. "
                     f"structured_error={structured_error}; fallback_error={fallback_error}"
                 ) from fallback_error
+
+    def _record_agent_schema(self, *, ledger, stage: str, agent: Any) -> None:
+        if not self.schema_debug_enabled:
+            return
+        try:
+            record_output(ledger, stage=stage, payload=collect_agent_schema_debug(agent), repaired=False)
+        except Exception as exc:
+            record_issue(
+                ledger,
+                stage=stage,
+                kind="runtime_error",
+                message=f"Unable to collect schema debug for {stage}: {exc}",
+                agent="schema-debug",
+                detail=str(exc),
+            )
+
+    def _record_runtime_exception(
+        self,
+        *,
+        ledger,
+        stage: str,
+        agent_name: str,
+        exc: Exception,
+        path_label: str,
+    ) -> None:
+        kind = _classify_runtime_exception(exc)
+        record_issue(
+            ledger,
+            stage=stage,
+            kind=kind,
+            message=f"{agent_name} {path_label} failed: {exc}",
+            agent=agent_name,
+            detail=type(exc).__name__,
+        )
 
     def _run_agent_once(
         self,
@@ -593,3 +668,14 @@ class ResearchAgentFactory:
         if agent_name not in context.trace_ids:
             context.trace_ids[agent_name] = gen_trace_id()
         return context.trace_ids[agent_name]
+
+
+def _classify_runtime_exception(exc: Exception) -> str:
+    message = str(exc).lower()
+    if "additionalproperties should not be set" in message or "strict json schema is enabled" in message:
+        return "schema_compatibility_error"
+    if "invalid json when parsing" in message or "json_invalid" in message:
+        return "provider_response_parse_error"
+    if any(token in message for token in ("timeout", "timed out", "rate limit", "429", "500", "server error")):
+        return "provider_exception"
+    return "runtime_error"

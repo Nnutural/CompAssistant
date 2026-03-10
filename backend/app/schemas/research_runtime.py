@@ -21,6 +21,7 @@ TaskType = Literal[
 ]
 RequestedBy = Literal["user", "codex", "system", "agent"]
 Priority = Literal["low", "normal", "high"]
+RuntimeMode = Literal["mock", "agents_sdk"]
 ResultStatus = Literal["draft", "completed", "blocked", "needs_human"]
 FindingConfidence = Literal["low", "medium", "high"]
 ArtifactKind = Literal["file", "doc", "schema", "report", "note", "dataset", "ledger_entry"]
@@ -42,7 +43,15 @@ RunState = Literal[
     "awaiting_review",
 ]
 RunEventStatus = Literal["entered", "completed", "error", "warning", "fallback", "info"]
-ValidationIssueKind = Literal["parse_error", "validation_error", "repair_warning", "runtime_error"]
+ValidationIssueKind = Literal[
+    "parse_error",
+    "validation_error",
+    "repair_warning",
+    "runtime_error",
+    "schema_compatibility_error",
+    "provider_response_parse_error",
+    "provider_exception",
+]
 ControlAction = Literal["retry", "cancel", "review_accept", "review_reject", "review_annotate"]
 
 
@@ -272,6 +281,9 @@ class ResearchLedger(ContractBaseModel):
     request_objective: Optional[str] = None
     request_payload: Dict[str, Any] = Field(default_factory=dict)
     request_constraints: List[str] = Field(default_factory=list)
+    requested_runtime_mode: Optional[str] = None
+    effective_runtime_mode: Optional[RuntimeMode] = None
+    effective_model: Optional[str] = None
     model: Optional[str] = None
     base_url: Optional[str] = None
     used_mock_fallback: bool = False

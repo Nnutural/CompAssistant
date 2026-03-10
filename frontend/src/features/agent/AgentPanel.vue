@@ -61,11 +61,7 @@ import type {
   AgentTaskReviewRequest,
   AgentTaskStatusResponse,
 } from '../../types/agent'
-import {
-  AGENT_HISTORY_PAGE_SIZE,
-  AGENT_POLL_INTERVAL_MS,
-  TERMINAL_RUN_STATUSES,
-} from './config'
+import { AGENT_HISTORY_PAGE_SIZE, AGENT_POLL_INTERVAL_MS, TERMINAL_RUN_STATUSES } from './config'
 import ArtifactPanel from './components/ArtifactPanel.vue'
 import EventTimeline from './components/EventTimeline.vue'
 import RunStatus from './components/RunStatus.vue'
@@ -76,11 +72,9 @@ const runStatus = ref<AgentTaskStatusResponse | null>(null)
 const eventItems = ref<AgentTaskEventItem[]>([])
 const artifactItems = ref<AgentTaskArtifactItem[]>([])
 const historyItems = ref<AgentTaskHistoryItem[]>([])
-
 const historyTotal = ref(0)
 const historyStatusFilter = ref('')
 const historyTaskTypeFilter = ref('')
-
 const isSubmitting = ref(false)
 const isArtifactsLoading = ref(false)
 const isHistoryLoading = ref(false)
@@ -107,9 +101,7 @@ function stopPolling() {
 
 function startPolling(runId: string) {
   stopPolling()
-  pollTimer = window.setInterval(() => {
-    void pollRun(runId)
-  }, AGENT_POLL_INTERVAL_MS)
+  pollTimer = window.setInterval(() => void pollRun(runId), AGENT_POLL_INTERVAL_MS)
 }
 
 async function handleSubmit(request: AgentTaskCreateRequest) {
@@ -141,9 +133,7 @@ async function handleSubmit(request: AgentTaskCreateRequest) {
 }
 
 async function pollRun(runId: string) {
-  if (isPolling.value) {
-    return
-  }
+  if (isPolling.value) return
   isPolling.value = true
   try {
     const status = await getAgentTaskStatus(runId)
@@ -164,18 +154,14 @@ async function pollRun(runId: string) {
 }
 
 async function refreshEvents(runId: string) {
-  const response = await getAgentTaskEvents(runId)
-  eventItems.value = response.items
+  eventItems.value = (await getAgentTaskEvents(runId)).items
 }
 
 async function refreshArtifacts() {
-  if (!currentRunId.value) {
-    return
-  }
+  if (!currentRunId.value) return
   isArtifactsLoading.value = true
   try {
-    const response = await getAgentTaskArtifacts(currentRunId.value)
-    artifactItems.value = response.items
+    artifactItems.value = (await getAgentTaskArtifacts(currentRunId.value)).items
     networkError.value = ''
   } catch (error) {
     networkError.value = error instanceof Error ? error.message : '读取产物失败。'
@@ -185,10 +171,9 @@ async function refreshArtifacts() {
 }
 
 async function refreshRun() {
-  if (!currentRunId.value) {
-    return
+  if (currentRunId.value) {
+    await pollRun(currentRunId.value)
   }
-  await pollRun(currentRunId.value)
 }
 
 async function refreshHistory() {
@@ -247,11 +232,10 @@ async function selectRun(runId: string) {
 }
 
 async function handleRetry() {
-  if (!currentRunId.value) {
-    return
-  }
+  if (!currentRunId.value) return
   isActionBusy.value = true
   noticeMessage.value = ''
+  networkError.value = ''
   try {
     const response = await retryAgentTask(currentRunId.value)
     runStatus.value = response.new_run
@@ -273,14 +257,12 @@ async function handleRetry() {
 }
 
 async function handleCancel() {
-  if (!currentRunId.value) {
-    return
-  }
+  if (!currentRunId.value) return
   const note = window.prompt('请输入取消说明（可选）', '操作员取消任务')
-  if (note === null) {
-    return
-  }
+  if (note === null) return
   isActionBusy.value = true
+  noticeMessage.value = ''
+  networkError.value = ''
   try {
     const response = await cancelAgentTask(currentRunId.value, { note })
     stopPolling()
@@ -297,9 +279,7 @@ async function handleCancel() {
 }
 
 async function handleReview(decision: AgentTaskReviewRequest['decision']) {
-  if (!currentRunId.value) {
-    return
-  }
+  if (!currentRunId.value) return
   const placeholder =
     decision === 'accept'
       ? '人工审核通过'
@@ -307,10 +287,10 @@ async function handleReview(decision: AgentTaskReviewRequest['decision']) {
         ? '人工审核驳回'
         : '请填写审核备注'
   const note = window.prompt('请输入审核说明', placeholder)
-  if (note === null) {
-    return
-  }
+  if (note === null) return
   isActionBusy.value = true
+  noticeMessage.value = ''
+  networkError.value = ''
   try {
     const response = await reviewAgentTask(currentRunId.value, { decision, note })
     runStatus.value = response.task
@@ -350,24 +330,7 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.agent-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  padding: 24px;
-  background: #ffffff;
-  min-height: 100%;
-}
-
-.panel-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
-  gap: 20px;
-}
-
-@media (max-width: 960px) {
-  .panel-grid {
-    grid-template-columns: 1fr;
-  }
-}
+.agent-panel { display:flex; flex-direction:column; gap:20px; padding:24px; background:#fff; min-height:100%; }
+.panel-grid { display:grid; grid-template-columns:minmax(0,1.1fr) minmax(0,1fr); gap:20px; }
+@media (max-width:960px) { .panel-grid { grid-template-columns:1fr; } }
 </style>

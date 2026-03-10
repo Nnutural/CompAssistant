@@ -12,6 +12,22 @@
 6. 按需读取 `GET /api/agent/tasks` 展示历史任务
 7. 按需调用 `retry / cancel / review` 控制接口
 
+## 运行语义展示
+
+前端状态区建议同时展示以下字段：
+
+- `requested_runtime_mode`
+- `effective_runtime_mode`
+- `effective_model`
+- `used_mock_fallback`
+- `fallback_reason`
+
+原因：
+
+- `completed` 不一定等于真实 provider 直出成功
+- 如果 `requested_runtime_mode="agents_sdk"` 但 `effective_runtime_mode="mock"`，说明本次 run 经历了 mock fallback
+- 前端不应把“任务完成”直接翻译成“Ark 成功”
+
 ## Phase 5C-mini 输入层
 
 当前 Agent 面板位于：
@@ -44,6 +60,7 @@
 - 当前仓库已补最小浏览器级 smoke：
   - `frontend/playwright.config.ts`
   - `frontend/e2e/agent-panel.spec.ts`
+  - `frontend/e2e/agent-control-errors.spec.ts`
   - `frontend/e2e/fixtures/agent-demo-cases.json`
 - 这套 smoke 不改变前后端契约，只验证现有面板和 API 的 happy path。
 

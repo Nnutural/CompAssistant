@@ -3,22 +3,14 @@
     <div class="section-header">
       <div>
         <h3>当前任务</h3>
-        <p>查看状态推进、降级信息、审核提示和控制入口。</p>
+        <p>查看状态推进、运行语义、降级信息、审核提示和控制入口。</p>
       </div>
-      <button
-        v-if="runStatus"
-        class="refresh-btn"
-        data-testid="run-status-refresh"
-        type="button"
-        @click="$emit('refresh')"
-      >
+      <button v-if="runStatus" class="refresh-btn" data-testid="run-status-refresh" type="button" @click="$emit('refresh')">
         刷新
       </button>
     </div>
 
-    <div v-if="!runStatus" class="empty-state">
-      请选择历史任务，或先创建一个新任务。
-    </div>
+    <div v-if="!runStatus" class="empty-state">请选择历史任务，或先创建一个新任务。</div>
 
     <template v-else>
       <div class="status-grid">
@@ -32,20 +24,32 @@
         </div>
         <div class="status-item">
           <span class="status-label">状态</span>
-          <span class="status-badge" :data-status="runStatus.status" data-testid="run-status-status">
-            {{ statusLabel }}
-          </span>
+          <span class="status-badge" :data-status="runStatus.status" data-testid="run-status-status">{{ statusLabel }}</span>
         </div>
         <div class="status-item">
           <span class="status-label">当前阶段</span>
           <span data-testid="run-status-current-state">{{ currentStateLabel }}</span>
         </div>
+        <div class="status-item">
+          <span class="status-label">请求模式</span>
+          <span data-testid="run-status-requested-runtime-mode">{{ runStatus.requested_runtime_mode || '未记录' }}</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">实际模式</span>
+          <span data-testid="run-status-effective-runtime-mode">{{ runStatus.effective_runtime_mode || '未记录' }}</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">实际模型</span>
+          <span data-testid="run-status-effective-model">{{ runStatus.effective_model || '未记录' }}</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">事件 / 产物</span>
+          <span>{{ runStatus.event_count }} / {{ runStatus.artifact_count }}</span>
+        </div>
       </div>
 
       <div v-if="runStatus.completed_states.length" class="pill-row">
-        <span v-for="state in runStatus.completed_states" :key="state" class="state-pill">
-          {{ stateLabel(state) }}
-        </span>
+        <span v-for="state in runStatus.completed_states" :key="state" class="state-pill">{{ stateLabel(state) }}</span>
       </div>
 
       <p v-if="runStatus.result.summary" class="summary-text">{{ runStatus.result.summary }}</p>
@@ -127,8 +131,8 @@
         <p>{{ runStatus.fallback_reason || '当前结果使用了 mock 降级路径。' }}</p>
       </div>
 
-      <div v-if="networkError" class="alert-box error">
-        <strong>网络错误</strong>
+      <div v-if="networkError" class="alert-box error" data-testid="run-status-network-error">
+        <strong>请求失败</strong>
         <p>{{ networkError }}</p>
       </div>
     </template>
@@ -160,16 +164,12 @@ const statusLabel = computed(() =>
 )
 
 const currentStateLabel = computed(() => {
-  if (!props.runStatus?.current_state) {
-    return '暂无'
-  }
+  if (!props.runStatus?.current_state) return '暂无'
   return STATE_LABELS[props.runStatus.current_state] ?? props.runStatus.current_state
 })
 
 const taskTypeLabel = computed(() => {
-  if (!props.runStatus?.task_type) {
-    return '未知'
-  }
+  if (!props.runStatus?.task_type) return '未知'
   return TASK_TYPE_LABELS[props.runStatus.task_type] ?? props.runStatus.task_type
 })
 
@@ -179,206 +179,37 @@ function stateLabel(state: AgentRunState) {
 </script>
 
 <style scoped>
-.panel-card {
-  background: #ffffff;
-  border: 1px solid #d2d2d7;
-  border-radius: 16px;
-  padding: 20px;
-}
-
-.section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px;
-}
-
-.section-header h3 {
-  font-size: 18px;
-  color: #1d1d1f;
-}
-
-.section-header p {
-  margin-top: 6px;
-  color: #6e6e73;
-  font-size: 14px;
-}
-
-.refresh-btn {
-  border: none;
-  border-radius: 10px;
-  padding: 8px 12px;
-  background: #e8e8ed;
-  color: #1d1d1f;
-  cursor: pointer;
-}
-
-.empty-state {
-  margin-top: 16px;
-  color: #6e6e73;
-}
-
-.status-grid {
-  margin-top: 16px;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
-}
-
-.status-item {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.status-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: #6e6e73;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.status-badge {
-  width: fit-content;
-  border-radius: 999px;
-  padding: 4px 10px;
-  font-size: 12px;
-  font-weight: 700;
-  text-transform: uppercase;
-  background: #e8e8ed;
-  color: #1d1d1f;
-}
-
-.status-badge[data-status='queued'] {
-  background: #fff3cd;
-  color: #7a5a00;
-}
-
-.status-badge[data-status='running'] {
-  background: #e7f0ff;
-  color: #0055aa;
-}
-
-.status-badge[data-status='completed'] {
-  background: #e8f5e9;
-  color: #1e7a34;
-}
-
-.status-badge[data-status='cancelled'] {
-  background: #f4f4f5;
-  color: #4b5563;
-}
-
-.status-badge[data-status='failed'] {
-  background: #fff1f0;
-  color: #b42318;
-}
-
-.status-badge[data-status='awaiting_review'] {
-  background: #fff8e1;
-  color: #915f00;
-}
-
-.pill-row {
-  margin-top: 16px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.state-pill {
-  padding: 6px 10px;
-  border-radius: 999px;
-  background: #f5f5f7;
-  border: 1px solid #d2d2d7;
-  font-size: 12px;
-  color: #1d1d1f;
-}
-
-.summary-text {
-  margin-top: 16px;
-  line-height: 1.6;
-  color: #1d1d1f;
-}
-
-.actions-row {
-  margin-top: 16px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.action-btn {
-  border: none;
-  border-radius: 10px;
-  padding: 9px 14px;
-  font-size: 14px;
-  background: #0071e3;
-  color: #ffffff;
-  cursor: pointer;
-}
-
-.action-btn.secondary {
-  background: #e8e8ed;
-  color: #1d1d1f;
-}
-
-.action-btn.warning {
-  background: #fff3cd;
-  color: #7a5a00;
-}
-
-.action-btn.success {
-  background: #e8f5e9;
-  color: #1e7a34;
-}
-
-.action-btn.danger {
-  background: #fff1f0;
-  color: #b42318;
-}
-
-.action-btn:disabled {
-  opacity: 0.6;
-  cursor: default;
-}
-
-.alert-box {
-  margin-top: 16px;
-  border-radius: 12px;
-  padding: 12px 14px;
-  background: #f5f5f7;
-  color: #1d1d1f;
-}
-
-.alert-box.info {
-  background: #eef6ff;
-  color: #0055aa;
-}
-
-.alert-box.warning {
-  background: #fff8e1;
-  color: #915f00;
-}
-
-.alert-box.error {
-  background: #fff1f0;
-  color: #b42318;
-}
-
-.alert-box ul {
-  margin-top: 8px;
-  padding-left: 18px;
-}
-
-.alert-box p {
-  margin-top: 8px;
-}
-
-@media (max-width: 768px) {
-  .status-grid {
-    grid-template-columns: 1fr;
-  }
-}
+.panel-card { background:#fff; border:1px solid #d2d2d7; border-radius:16px; padding:20px; }
+.section-header { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }
+.section-header h3 { font-size:18px; color:#1d1d1f; }
+.section-header p { margin-top:6px; color:#6e6e73; font-size:14px; }
+.refresh-btn { border:none; border-radius:10px; padding:8px 12px; background:#e8e8ed; color:#1d1d1f; cursor:pointer; }
+.empty-state { margin-top:16px; color:#6e6e73; }
+.status-grid { margin-top:16px; display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:14px; }
+.status-item { display:flex; flex-direction:column; gap:6px; }
+.status-label { font-size:12px; font-weight:600; color:#6e6e73; text-transform:uppercase; letter-spacing:.05em; }
+.status-badge { width:fit-content; border-radius:999px; padding:4px 10px; font-size:12px; font-weight:700; text-transform:uppercase; background:#e8e8ed; color:#1d1d1f; }
+.status-badge[data-status='queued'] { background:#fff3cd; color:#7a5a00; }
+.status-badge[data-status='running'] { background:#e7f0ff; color:#0055aa; }
+.status-badge[data-status='completed'] { background:#e8f5e9; color:#1e7a34; }
+.status-badge[data-status='cancelled'] { background:#f4f4f5; color:#4b5563; }
+.status-badge[data-status='failed'] { background:#fff1f0; color:#b42318; }
+.status-badge[data-status='awaiting_review'] { background:#fff8e1; color:#915f00; }
+.pill-row { margin-top:16px; display:flex; flex-wrap:wrap; gap:8px; }
+.state-pill { padding:6px 10px; border-radius:999px; background:#f5f5f7; border:1px solid #d2d2d7; font-size:12px; color:#1d1d1f; }
+.summary-text { margin-top:16px; line-height:1.6; color:#1d1d1f; }
+.actions-row { margin-top:16px; display:flex; flex-wrap:wrap; gap:10px; }
+.action-btn { border:none; border-radius:10px; padding:9px 14px; font-size:14px; background:#0071e3; color:#fff; cursor:pointer; }
+.action-btn.secondary { background:#e8e8ed; color:#1d1d1f; }
+.action-btn.warning { background:#fff3cd; color:#7a5a00; }
+.action-btn.success { background:#e8f5e9; color:#1e7a34; }
+.action-btn.danger { background:#fff1f0; color:#b42318; }
+.action-btn:disabled { opacity:.6; cursor:default; }
+.alert-box { margin-top:16px; border-radius:12px; padding:12px 14px; background:#f5f5f7; color:#1d1d1f; }
+.alert-box.info { background:#eef6ff; color:#0055aa; }
+.alert-box.warning { background:#fff8e1; color:#915f00; }
+.alert-box.error { background:#fff1f0; color:#b42318; }
+.alert-box ul { margin-top:8px; padding-left:18px; }
+.alert-box p { margin-top:8px; }
+@media (max-width:768px) { .status-grid { grid-template-columns:1fr; } }
 </style>

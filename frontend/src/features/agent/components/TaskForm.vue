@@ -3,7 +3,10 @@
     <div class="section-header">
       <div>
         <h2>新建任务</h2>
-        <p>保留 payload 作为内部 canonical contract，在前端提供简洁模式和高级模式两种输入方式。</p>
+        <p>
+          payload 仍然是内部 canonical contract。这里提供简洁模式和高级模式两种输入方式，
+          最终都会组装为 objective + payload 再调用现有 task API。
+        </p>
       </div>
     </div>
 
@@ -35,7 +38,7 @@
 
       <template v-if="inputMode === 'simple'">
         <p class="mode-note">
-          简洁模式面向产品输入层。你填写自然表单后，前端会自动组装 objective 和 payload，再调用现有 task API。
+          简洁模式面向产品输入层。你填写自然表单后，前端会自动生成 objective 和 payload，提交前会显示完整预览。
         </p>
 
         <template v-if="selectedTaskType === 'competition_recommendation'">
@@ -46,10 +49,9 @@
               data-testid="recommendation-direction-input"
               :disabled="submitting"
               type="text"
-              placeholder="例如：算法/编程、网络安全、数学/建模"
+              placeholder="例如：算法/编程、网络安全、数学建模"
             />
           </label>
-
           <label class="field">
             <span>年级</span>
             <select
@@ -62,7 +64,6 @@
               </option>
             </select>
           </label>
-
           <label class="field">
             <span>能力标签</span>
             <textarea
@@ -73,7 +74,6 @@
               placeholder="可用逗号、分号或换行分隔，例如 algorithms, cpp, problem-solving"
             />
           </label>
-
           <label class="field">
             <span>偏好标签</span>
             <textarea
@@ -84,7 +84,6 @@
               placeholder="例如 team, onsite, flexible"
             />
           </label>
-
           <label class="field">
             <span>补充说明</span>
             <textarea
@@ -92,10 +91,9 @@
               data-testid="recommendation-notes-input"
               :disabled="submitting"
               rows="3"
-              placeholder="可选，例如希望偏稳妥、希望含团队协作、希望兼顾奖项含金量"
+              placeholder="可选，例如希望更稳妥，或希望兼顾奖项含金量"
             />
           </label>
-
           <div class="field">
             <span>附件元数据（可选）</span>
             <input
@@ -105,11 +103,8 @@
               multiple
               @change="handleAttachmentChange('competition_recommendation', $event)"
             />
-            <p class="field-hint">当前仅记录附件元数据到 payload.attachments，不上传文件，也不会被 runtime 消费。</p>
-            <ul
-              v-if="simpleDrafts.competition_recommendation.attachments.length"
-              class="attachment-list"
-            >
+            <p class="field-hint">当前只会把附件元数据写入 payload.attachments，不上传文件，也不会被 runtime 消费。</p>
+            <ul v-if="simpleDrafts.competition_recommendation.attachments.length" class="attachment-list">
               <li
                 v-for="(item, index) in simpleDrafts.competition_recommendation.attachments"
                 :key="item.local_ref"
@@ -159,9 +154,9 @@
                 <span>#{{ item.id }} · {{ item.field }}</span>
               </button>
             </div>
-            <p v-if="competitionsLoading" class="field-hint">正在加载竞赛列表……</p>
+            <p v-if="competitionsLoading" class="field-hint">正在加载竞赛列表…</p>
             <p v-else-if="competitionsError" class="field-hint warning">
-              {{ competitionsError }} 已自动退化为手动输入 competition_id。
+              {{ competitionsError }}。已退化为手动输入 competition_id。
             </p>
             <p
               v-else-if="
@@ -171,7 +166,7 @@
               "
               class="field-hint warning"
             >
-              未找到精确匹配。你可以继续输入关键词，或直接在下方手动填写 competition_id。
+              当前没有明确匹配结果。你可以继续输入名称关键词，或直接手动填写 competition_id。
             </p>
             <p class="field-hint" data-testid="selected-competition-id">
               最终将提交 competition_id:
@@ -194,7 +189,6 @@
               @input="updateManualCompetitionId('competition_eligibility_check', $event)"
             />
           </label>
-
           <label class="field">
             <span>年级</span>
             <select
@@ -207,7 +201,6 @@
               </option>
             </select>
           </label>
-
           <label class="field">
             <span>已有经历 / 成绩</span>
             <textarea
@@ -215,21 +208,19 @@
               data-testid="eligibility-achievements-input"
               :disabled="submitting"
               rows="3"
-              placeholder="例如 蓝桥杯省赛、算法训练、Python 项目经验"
+              placeholder="例如：蓝桥杯省赛、算法训练、Python 项目经验"
             />
           </label>
-
           <label class="field">
-            <span>前置条件 / 不足项</span>
+            <span>前置条件 / 当前不足</span>
             <textarea
               v-model="simpleDrafts.competition_eligibility_check.prerequisites"
               data-testid="eligibility-prerequisites-input"
               :disabled="submitting"
               rows="3"
-              placeholder="例如 需要补强数学基础、还没有团队经验"
+              placeholder="例如：需要补强数学基础、还没有团队经验"
             />
           </label>
-
           <label class="field">
             <span>参赛方式偏好</span>
             <select
@@ -242,7 +233,6 @@
               </option>
             </select>
           </label>
-
           <label class="field">
             <span>补充说明</span>
             <textarea
@@ -250,10 +240,9 @@
               data-testid="eligibility-notes-input"
               :disabled="submitting"
               rows="3"
-              placeholder="可选，例如希望优先评估保守路径，或是否接受高难度 stretch 目标"
+              placeholder="可选，例如希望优先评估保守路径，或接受 stretch 目标"
             />
           </label>
-
           <div class="field">
             <span>附件元数据（可选）</span>
             <input
@@ -263,7 +252,7 @@
               multiple
               @change="handleAttachmentChange('competition_eligibility_check', $event)"
             />
-            <p class="field-hint">例如简历、获奖证明、课程成绩单，仅保存元数据。</p>
+            <p class="field-hint">例如简历、获奖证明、成绩单。当前只记录元数据。</p>
             <ul v-if="simpleDrafts.competition_eligibility_check.attachments.length" class="attachment-list">
               <li
                 v-for="(item, index) in simpleDrafts.competition_eligibility_check.attachments"
@@ -314,9 +303,9 @@
                 <span>#{{ item.id }} · {{ item.field }}</span>
               </button>
             </div>
-            <p v-if="competitionsLoading" class="field-hint">正在加载竞赛列表……</p>
+            <p v-if="competitionsLoading" class="field-hint">正在加载竞赛列表…</p>
             <p v-else-if="competitionsError" class="field-hint warning">
-              {{ competitionsError }} 已自动退化为手动输入 competition_id。
+              {{ competitionsError }}。已退化为手动输入 competition_id。
             </p>
             <p
               v-else-if="
@@ -326,7 +315,7 @@
               "
               class="field-hint warning"
             >
-              未找到精确匹配。你可以继续输入关键词，或直接在下方手动填写 competition_id。
+              当前没有明确匹配结果。你可以继续输入名称关键词，或直接手动填写 competition_id。
             </p>
             <p class="field-hint" data-testid="selected-competition-id">
               最终将提交 competition_id:
@@ -349,7 +338,6 @@
               @input="updateManualCompetitionId('competition_timeline_plan', $event)"
             />
           </label>
-
           <label class="field">
             <span>截止日期</span>
             <input
@@ -358,9 +346,8 @@
               :disabled="submitting"
               type="datetime-local"
             />
-            <p class="field-hint">会被转换成现有 payload.deadline 字段，作为时间规划的 canonical 输入。</p>
+            <p class="field-hint">会被映射到 payload.deadline，作为时间线规划的 canonical 输入。</p>
           </label>
-
           <label class="field">
             <span>每周可投入小时数</span>
             <input
@@ -372,7 +359,6 @@
               max="80"
             />
           </label>
-
           <label class="field">
             <span>当前阶段</span>
             <textarea
@@ -380,10 +366,9 @@
               data-testid="timeline-current-stage-input"
               :disabled="submitting"
               rows="2"
-              placeholder="例如 已完成选题、还缺队友、刚开始准备"
+              placeholder="例如：已完成选题，还缺队友，或者刚开始准备"
             />
           </label>
-
           <label class="field">
             <span>目标 / 约束</span>
             <textarea
@@ -391,10 +376,9 @@
               data-testid="timeline-goals-input"
               :disabled="submitting"
               rows="3"
-              placeholder="例如 目标是提交 MVP；约束是只有 2 人、希望避免并行任务过多"
+              placeholder="例如：目标是提交 MVP；约束是只有 2 人，希望避免并行任务过多"
             />
           </label>
-
           <label class="field">
             <span>补充说明</span>
             <textarea
@@ -402,10 +386,9 @@
               data-testid="timeline-notes-input"
               :disabled="submitting"
               rows="3"
-              placeholder="可选，例如是否临近期末、是否需要兼顾实习/考试"
+              placeholder="可选，例如期末周压力、实习安排等"
             />
           </label>
-
           <div class="field">
             <span>附件元数据（可选）</span>
             <input
@@ -415,7 +398,7 @@
               multiple
               @change="handleAttachmentChange('competition_timeline_plan', $event)"
             />
-            <p class="field-hint">例如任务书、往届方案、日历截图，仅记录元数据，不做上传。</p>
+            <p class="field-hint">例如任务书、往届方案、日历截图。当前只记录元数据。</p>
             <ul v-if="simpleDrafts.competition_timeline_plan.attachments.length" class="attachment-list">
               <li
                 v-for="(item, index) in simpleDrafts.competition_timeline_plan.attachments"
@@ -437,18 +420,14 @@
 
         <div class="preview-card" data-testid="simple-preview-card">
           <h3>将要提交的 objective</h3>
-          <p data-testid="simple-objective-preview">{{ simplePreview.objective || '未生成 objective' }}</p>
-
+          <p data-testid="simple-objective-preview">{{ simplePreview.objective || '尚未生成 objective' }}</p>
           <h3>将要提交的 payload 预览</h3>
           <pre data-testid="simple-payload-preview">{{ simplePayloadPreview }}</pre>
         </div>
       </template>
 
       <template v-else>
-        <p class="mode-note">
-          高级模式保留原始 objective + payload JSON 编辑体验，适合调试、回归测试和精确构造 case。
-        </p>
-
+        <p class="mode-note">高级模式保留原始 objective + payload JSON 编辑体验，适合调试、回归测试和精确构造 case。</p>
         <label class="field">
           <span>任务目标</span>
           <input
@@ -459,7 +438,6 @@
             placeholder="请输入任务目标"
           />
         </label>
-
         <label class="field">
           <span>Payload JSON</span>
           <textarea
@@ -470,14 +448,8 @@
             spellcheck="false"
           />
         </label>
-
-        <p class="field-hint">
-          payload 仍然是内部 canonical representation。高级模式中可以直接查看和编辑将提交给后端的 JSON。
-        </p>
-
-        <p v-if="activeAdvancedDraft.parseError" class="form-alert error">
-          {{ activeAdvancedDraft.parseError }}
-        </p>
+        <p class="field-hint">payload 仍然是内部 canonical representation。高级模式中可以直接查看和编辑将要提交给后端的 JSON。</p>
+        <p v-if="activeAdvancedDraft.parseError" class="form-alert error">{{ activeAdvancedDraft.parseError }}</p>
       </template>
 
       <p v-if="formError" class="form-alert error">{{ formError }}</p>
@@ -505,7 +477,6 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
-
 import { listCompetitions, type CompetitionOption } from '../../../api/competitions'
 import type { AgentTaskCreateRequest } from '../../../types/agent'
 import {
@@ -539,13 +510,8 @@ interface AdvancedBackupDraft {
 
 type CompetitionTaskType = 'competition_eligibility_check' | 'competition_timeline_plan'
 
-defineProps<{
-  submitting: boolean
-}>()
-
-const emit = defineEmits<{
-  (event: 'submit', payload: AgentTaskCreateRequest): void
-}>()
+defineProps<{ submitting: boolean }>()
+const emit = defineEmits<{ (event: 'submit', payload: AgentTaskCreateRequest): void }>()
 
 const taskOptions = AGENT_TASK_OPTIONS
 const modeOptions = INPUT_MODE_OPTIONS
@@ -556,11 +522,9 @@ const inputMode = ref<'simple' | 'advanced'>('simple')
 const selectedTaskType = ref<SupportedAgentTaskType>('competition_recommendation')
 const modeNotice = ref('')
 const formError = ref('')
-
 const competitions = ref<CompetitionOption[]>([])
 const competitionsLoading = ref(false)
 const competitionsError = ref('')
-
 const simpleDrafts = reactive(buildDefaultSimpleDrafts())
 const advancedDrafts = reactive<Record<SupportedAgentTaskType, AdvancedDraft>>({
   competition_recommendation: toAdvancedDraft('competition_recommendation'),
@@ -575,49 +539,29 @@ const advancedBackups = reactive<Record<SupportedAgentTaskType, AdvancedBackupDr
 
 const activeAdvancedDraft = computed(() => advancedDrafts[selectedTaskType.value])
 const hasAdvancedBackup = computed(() => Boolean(advancedBackups[selectedTaskType.value]))
-const simplePreview = computed(() =>
-  buildSimpleTaskRequest(selectedTaskType.value, simpleDrafts, competitions.value),
-)
-const simplePayloadPreview = computed(() =>
-  JSON.stringify(simplePreview.value.payload, null, 2),
-)
+const simplePreview = computed(() => buildSimpleTaskRequest(selectedTaskType.value, simpleDrafts, competitions.value))
+const simplePayloadPreview = computed(() => JSON.stringify(simplePreview.value.payload, null, 2))
 const eligibilitySuggestions = computed(() =>
-  searchCompetitionSuggestions(
-    simpleDrafts.competition_eligibility_check.competition_query,
-    competitions.value,
-    COMPETITION_SUGGESTION_LIMIT,
-  ),
+  searchCompetitionSuggestions(simpleDrafts.competition_eligibility_check.competition_query, competitions.value, COMPETITION_SUGGESTION_LIMIT),
 )
 const timelineSuggestions = computed(() =>
-  searchCompetitionSuggestions(
-    simpleDrafts.competition_timeline_plan.competition_query,
-    competitions.value,
-    COMPETITION_SUGGESTION_LIMIT,
-  ),
+  searchCompetitionSuggestions(simpleDrafts.competition_timeline_plan.competition_query, competitions.value, COMPETITION_SUGGESTION_LIMIT),
 )
 
 function toAdvancedDraft(taskType: SupportedAgentTaskType): AdvancedDraft {
   const draft = buildDefaultTaskDraft(taskType)
-  return {
-    objective: draft.objective ?? '',
-    payloadText: JSON.stringify(draft.payload, null, 2),
-    parseError: '',
-  }
+  return { objective: draft.objective ?? '', payloadText: JSON.stringify(draft.payload, null, 2), parseError: '' }
 }
 
 function setInputMode(mode: 'simple' | 'advanced') {
   formError.value = ''
-  if (mode === inputMode.value) {
-    return
-  }
-
+  if (mode === inputMode.value) return
   if (mode === 'advanced') {
     syncAdvancedFromSimple(true)
     modeNotice.value = '已将当前简洁表单同步到高级模式，你可以继续微调 objective 和 payload JSON。'
   } else {
     modeNotice.value = '已返回简洁模式。高级模式中的自定义 JSON 会保留，切回高级模式后仍可继续编辑。'
   }
-
   inputMode.value = mode
 }
 
@@ -625,23 +569,12 @@ function syncAdvancedFromSimple(preserveExisting: boolean) {
   const currentTaskType = selectedTaskType.value
   const nextDraft = simplePreview.value
   const activeDraft = advancedDrafts[currentTaskType]
-
-  if (
-    preserveExisting
-    && (activeDraft.objective.trim() || activeDraft.payloadText.trim())
-    && (
-      activeDraft.objective !== (nextDraft.objective ?? '')
-      || activeDraft.payloadText !== JSON.stringify(nextDraft.payload, null, 2)
-    )
-  ) {
-    advancedBackups[currentTaskType] = {
-      objective: activeDraft.objective,
-      payloadText: activeDraft.payloadText,
-    }
+  const nextPayloadText = JSON.stringify(nextDraft.payload, null, 2)
+  if (preserveExisting && (activeDraft.objective.trim() || activeDraft.payloadText.trim()) && (activeDraft.objective !== (nextDraft.objective ?? '') || activeDraft.payloadText !== nextPayloadText)) {
+    advancedBackups[currentTaskType] = { objective: activeDraft.objective, payloadText: activeDraft.payloadText }
   }
-
   activeDraft.objective = nextDraft.objective ?? ''
-  activeDraft.payloadText = JSON.stringify(nextDraft.payload, null, 2)
+  activeDraft.payloadText = nextPayloadText
   activeDraft.parseError = ''
 }
 
@@ -649,20 +582,15 @@ function resetCurrentDraft() {
   formError.value = ''
   modeNotice.value = ''
   if (inputMode.value === 'simple') {
-    const defaults = buildDefaultSimpleDrafts()[selectedTaskType.value]
-    Object.assign(simpleDrafts[selectedTaskType.value], defaults)
+    Object.assign(simpleDrafts[selectedTaskType.value], buildDefaultSimpleDrafts()[selectedTaskType.value])
     return
   }
-
-  const defaults = toAdvancedDraft(selectedTaskType.value)
-  Object.assign(advancedDrafts[selectedTaskType.value], defaults)
+  Object.assign(advancedDrafts[selectedTaskType.value], toAdvancedDraft(selectedTaskType.value))
 }
 
 function restoreAdvancedBackup() {
   const backup = advancedBackups[selectedTaskType.value]
-  if (!backup) {
-    return
-  }
+  if (!backup) return
   advancedDrafts[selectedTaskType.value].objective = backup.objective
   advancedDrafts[selectedTaskType.value].payloadText = backup.payloadText
   advancedDrafts[selectedTaskType.value].parseError = ''
@@ -671,25 +599,13 @@ function restoreAdvancedBackup() {
 
 function validateSimpleForm(): string {
   if (selectedTaskType.value === 'competition_recommendation') {
-    if (!simpleDrafts.competition_recommendation.direction.trim()) {
-      return '请先填写推荐任务的方向。'
-    }
-    return ''
+    return simpleDrafts.competition_recommendation.direction.trim() ? '' : '请先填写推荐任务的方向。'
   }
-
   if (selectedTaskType.value === 'competition_eligibility_check') {
-    if (!simpleDrafts.competition_eligibility_check.competition_id) {
-      return '请先选择竞赛名称，或手动输入 competition_id。'
-    }
-    return ''
+    return simpleDrafts.competition_eligibility_check.competition_id ? '' : '请先选择竞赛名称，或手动输入 competition_id。'
   }
-
-  if (!simpleDrafts.competition_timeline_plan.competition_id) {
-    return '请先选择竞赛名称，或手动输入 competition_id。'
-  }
-  if (!simpleDrafts.competition_timeline_plan.deadline.trim()) {
-    return '请先填写时间线任务的截止日期。'
-  }
+  if (!simpleDrafts.competition_timeline_plan.competition_id) return '请先选择竞赛名称，或手动输入 competition_id。'
+  if (!simpleDrafts.competition_timeline_plan.deadline.trim()) return '请先填写时间线任务的截止日期。'
   return ''
 }
 
@@ -701,31 +617,22 @@ function submitForm() {
       formError.value = validationError
       return
     }
-
     syncAdvancedFromSimple(false)
     emit('submit', simplePreview.value)
     return
   }
-
   try {
     const payload = JSON.parse(activeAdvancedDraft.value.payloadText)
     activeAdvancedDraft.value.parseError = ''
-    emit('submit', {
-      task_type: selectedTaskType.value,
-      objective: activeAdvancedDraft.value.objective,
-      payload,
-      dry_run: false,
-    })
+    emit('submit', { task_type: selectedTaskType.value, objective: activeAdvancedDraft.value.objective, payload, dry_run: false })
   } catch (error) {
-    activeAdvancedDraft.value.parseError =
-      error instanceof Error ? `JSON 解析失败：${error.message}` : 'JSON 格式无效。'
+    activeAdvancedDraft.value.parseError = error instanceof Error ? `JSON 解析失败：${error.message}` : 'JSON 格式无效。'
   }
 }
 
 function handleCompetitionQueryInput(taskType: CompetitionTaskType) {
   const draft = simpleDrafts[taskType]
-  const resolved = resolveCompetitionSelection(draft.competition_query, competitions.value)
-  draft.competition_id = resolved.competitionId
+  draft.competition_id = resolveCompetitionSelection(draft.competition_query, competitions.value).competitionId
 }
 
 function syncCompetitionQuery(taskType: CompetitionTaskType) {
@@ -742,9 +649,6 @@ function selectCompetitionSuggestion(taskType: CompetitionTaskType, item: Compet
 
 function selectedCompetitionLabel(taskType: CompetitionTaskType): string {
   const competitionId = simpleDrafts[taskType].competition_id
-  if (!competitionId) {
-    return ''
-  }
   const matched = competitions.value.find((item) => item.id === competitionId)
   return matched?.name ?? ''
 }
@@ -758,11 +662,8 @@ function updateManualCompetitionId(taskType: CompetitionTaskType, event: Event) 
 function handleAttachmentChange(taskType: SupportedAgentTaskType, event: Event) {
   const target = event.target as HTMLInputElement
   const fileList = target.files
-  if (!fileList?.length) {
-    return
-  }
-  const attachments = Array.from(fileList).map(createAttachmentMetadata)
-  simpleDrafts[taskType].attachments = simpleDrafts[taskType].attachments.concat(attachments)
+  if (!fileList?.length) return
+  simpleDrafts[taskType].attachments = simpleDrafts[taskType].attachments.concat(Array.from(fileList).map(createAttachmentMetadata))
   target.value = ''
 }
 
@@ -776,10 +677,7 @@ async function loadCompetitionOptions() {
   try {
     competitions.value = await listCompetitions()
   } catch (error) {
-    competitionsError.value =
-      error instanceof Error
-        ? `竞赛列表加载失败：${error.message}`
-        : '竞赛列表加载失败。'
+    competitionsError.value = error instanceof Error ? `竞赛列表加载失败：${error.message}` : '竞赛列表加载失败。'
   } finally {
     competitionsLoading.value = false
   }
@@ -791,284 +689,46 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.panel-card {
-  background: #ffffff;
-  border: 1px solid #d2d2d7;
-  border-radius: 16px;
-  padding: 20px;
-}
-
-.section-header h2 {
-  font-size: 20px;
-  color: #1d1d1f;
-}
-
-.section-header p {
-  margin-top: 6px;
-  color: #6e6e73;
-  font-size: 14px;
-  line-height: 1.5;
-}
-
-.mode-switch {
-  margin-top: 18px;
-  display: inline-flex;
-  gap: 8px;
-  padding: 4px;
-  border-radius: 999px;
-  background: #f5f5f7;
-}
-
-.mode-btn {
-  border: none;
-  border-radius: 999px;
-  padding: 9px 16px;
-  background: transparent;
-  color: #1d1d1f;
-  cursor: pointer;
-}
-
-.mode-btn.active {
-  background: #ffffff;
-  box-shadow: inset 0 0 0 1px #d2d2d7;
-  font-weight: 600;
-}
-
-.task-form {
-  margin-top: 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.field span {
-  font-size: 13px;
-  font-weight: 600;
-  color: #6e6e73;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.field input,
-.field select,
-.field textarea {
-  width: 100%;
-  border: 1px solid #d2d2d7;
-  border-radius: 10px;
-  background: #f5f5f7;
-  color: #1d1d1f;
-  padding: 12px 14px;
-  font-size: 14px;
-  font-family: inherit;
-}
-
-.field textarea {
-  resize: vertical;
-  min-height: 112px;
-}
-
-.field input:focus,
-.field select:focus,
-.field textarea:focus {
-  outline: none;
-  border-color: #0071e3;
-  background: #ffffff;
-  box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.12);
-}
-
-.field-hint {
-  font-size: 13px;
-  color: #6e6e73;
-  line-height: 1.5;
-}
-
-.field-hint.warning {
-  color: #915f00;
-}
-
-.mode-note {
-  border-radius: 12px;
-  padding: 12px 14px;
-  background: #f5f5f7;
-  color: #1d1d1f;
-  line-height: 1.6;
-}
-
-.suggestion-box {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  border: 1px solid #d2d2d7;
-  border-radius: 12px;
-  padding: 10px;
-  background: #fafafc;
-}
-
-.suggestion-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 12px;
-  border: 1px solid #e8e8ed;
-  border-radius: 10px;
-  background: #ffffff;
-  color: #1d1d1f;
-  cursor: pointer;
-  text-align: left;
-}
-
-.suggestion-item strong {
-  font-size: 14px;
-}
-
-.suggestion-item span {
-  color: #6e6e73;
-  font-size: 13px;
-}
-
-.suggestion-item:hover {
-  border-color: #0071e3;
-  box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.08);
-}
-
-.preview-card {
-  border: 1px solid #d2d2d7;
-  border-radius: 14px;
-  padding: 16px;
-  background: #fafafc;
-}
-
-.preview-card h3 {
-  font-size: 15px;
-  color: #1d1d1f;
-}
-
-.preview-card h3 + p,
-.preview-card h3 + pre {
-  margin-top: 10px;
-}
-
-.preview-card h3:not(:first-child) {
-  margin-top: 18px;
-}
-
-.preview-card p,
-.preview-card pre {
-  color: #1d1d1f;
-  line-height: 1.6;
-}
-
-.preview-card pre {
-  white-space: pre-wrap;
-  word-break: break-word;
-  font-size: 13px;
-}
-
-.attachment-list {
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.attachment-list li {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  align-items: center;
-  border: 1px solid #e8e8ed;
-  border-radius: 10px;
-  padding: 10px 12px;
-  background: #fafafc;
-}
-
-.link-btn {
-  border: none;
-  background: transparent;
-  color: #0071e3;
-  cursor: pointer;
-}
-
-.form-alert {
-  border-radius: 10px;
-  padding: 12px 14px;
-  font-size: 14px;
-  line-height: 1.5;
-}
-
-.form-alert.info {
-  background: #eef6ff;
-  color: #0055aa;
-  border: 1px solid #c7defd;
-}
-
-.form-alert.error {
-  background: #fff1f0;
-  color: #b42318;
-  border: 1px solid #f4c7c3;
-}
-
-.form-actions {
-  display: flex;
-  justify-content: flex-end;
-  flex-wrap: wrap;
-  gap: 12px;
-}
-
-.primary-btn,
-.secondary-btn {
-  border: none;
-  border-radius: 10px;
-  padding: 10px 16px;
-  font-size: 14px;
-  cursor: pointer;
-}
-
-.primary-btn {
-  background: #0071e3;
-  color: #ffffff;
-}
-
-.secondary-btn {
-  background: #e8e8ed;
-  color: #1d1d1f;
-}
-
-.primary-btn:disabled,
-.secondary-btn:disabled,
-.link-btn:disabled,
-.mode-btn:disabled,
-.suggestion-item:disabled {
-  cursor: default;
-  opacity: 0.6;
-}
-
-@media (max-width: 768px) {
-  .mode-switch {
-    width: 100%;
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .suggestion-item,
-  .attachment-list li {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .form-actions {
-    justify-content: stretch;
-  }
-
-  .form-actions button {
-    width: 100%;
-  }
+.panel-card { background:#fff; border:1px solid #d2d2d7; border-radius:16px; padding:20px; }
+.section-header h2 { font-size:20px; color:#1d1d1f; }
+.section-header p { margin-top:6px; color:#6e6e73; font-size:14px; line-height:1.5; }
+.mode-switch { margin-top:18px; display:inline-flex; gap:8px; padding:4px; border-radius:999px; background:#f5f5f7; }
+.mode-btn { border:none; border-radius:999px; padding:9px 16px; background:transparent; color:#1d1d1f; cursor:pointer; }
+.mode-btn.active { background:#fff; box-shadow:inset 0 0 0 1px #d2d2d7; font-weight:600; }
+.task-form { margin-top:18px; display:flex; flex-direction:column; gap:16px; }
+.field { display:flex; flex-direction:column; gap:8px; }
+.field span { font-size:13px; font-weight:600; color:#6e6e73; text-transform:uppercase; letter-spacing:.04em; }
+.field input,.field select,.field textarea { width:100%; border:1px solid #d2d2d7; border-radius:10px; background:#f5f5f7; color:#1d1d1f; padding:12px 14px; font-size:14px; font-family:inherit; }
+.field textarea { resize:vertical; min-height:112px; }
+.field input:focus,.field select:focus,.field textarea:focus { outline:none; border-color:#0071e3; background:#fff; box-shadow:0 0 0 3px rgba(0,113,227,.12); }
+.field-hint { font-size:13px; color:#6e6e73; line-height:1.5; }
+.field-hint.warning { color:#915f00; }
+.mode-note { border-radius:12px; padding:12px 14px; background:#f5f5f7; color:#1d1d1f; line-height:1.6; }
+.suggestion-box { display:flex; flex-direction:column; gap:8px; border:1px solid #d2d2d7; border-radius:12px; padding:10px; background:#fafafc; }
+.suggestion-item { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:10px 12px; border:1px solid #e8e8ed; border-radius:10px; background:#fff; color:#1d1d1f; cursor:pointer; text-align:left; }
+.suggestion-item span { color:#6e6e73; font-size:13px; }
+.suggestion-item:hover { border-color:#0071e3; box-shadow:0 0 0 3px rgba(0,113,227,.08); }
+.preview-card { border:1px solid #d2d2d7; border-radius:14px; padding:16px; background:#fafafc; }
+.preview-card h3 { font-size:15px; color:#1d1d1f; }
+.preview-card h3 + p,.preview-card h3 + pre { margin-top:10px; }
+.preview-card h3:not(:first-child) { margin-top:18px; }
+.preview-card p,.preview-card pre { color:#1d1d1f; line-height:1.6; }
+.preview-card pre { white-space:pre-wrap; word-break:break-word; font-size:13px; }
+.attachment-list { list-style:none; display:flex; flex-direction:column; gap:8px; }
+.attachment-list li { display:flex; justify-content:space-between; gap:12px; align-items:center; border:1px solid #e8e8ed; border-radius:10px; padding:10px 12px; background:#fafafc; }
+.link-btn { border:none; background:transparent; color:#0071e3; cursor:pointer; }
+.form-alert { border-radius:10px; padding:12px 14px; font-size:14px; line-height:1.5; }
+.form-alert.info { background:#eef6ff; color:#0055aa; border:1px solid #c7defd; }
+.form-alert.error { background:#fff1f0; color:#b42318; border:1px solid #f4c7c3; }
+.form-actions { display:flex; justify-content:flex-end; flex-wrap:wrap; gap:12px; }
+.primary-btn,.secondary-btn { border:none; border-radius:10px; padding:10px 16px; font-size:14px; cursor:pointer; }
+.primary-btn { background:#0071e3; color:#fff; }
+.secondary-btn { background:#e8e8ed; color:#1d1d1f; }
+.primary-btn:disabled,.secondary-btn:disabled,.link-btn:disabled,.mode-btn:disabled,.suggestion-item:disabled { cursor:default; opacity:.6; }
+@media (max-width:768px) {
+  .mode-switch { width:100%; display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); }
+  .suggestion-item,.attachment-list li { flex-direction:column; align-items:flex-start; }
+  .form-actions { justify-content:stretch; }
+  .form-actions button { width:100%; }
 }
 </style>

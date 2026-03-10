@@ -1,5 +1,28 @@
 # 本地评测说明
 
+## 运行语义前提
+
+当前正式支持的 runtime mode 只有：
+
+- `mock`
+- `agents_sdk`
+
+旧的 `live` 别名不再接受。继续传入会直接报错，避免把 mock 结果误读成真实 Ark 结果。
+
+评测结果需要结合以下字段解读：
+
+- `requested_runtime_mode`
+- `effective_runtime_mode`
+- `effective_model`
+- `used_mock_fallback`
+- `fallback_reason`
+
+尤其要注意：
+
+- `completed` 不一定代表 provider 直出成功
+- `completed + used_mock_fallback=true` 代表“真实 provider 失败后，由 mock 补全并完成”
+- mock 评测与 agents_sdk 评测现在必须分开看
+
 ## 数据集位置
 
 本地评测样例位于：
@@ -27,6 +50,12 @@
 backend\.venv\Scripts\python backend/scripts/run_eval.py --runtime-mode mock
 ```
 
+`agents_sdk` spot check：
+
+```bash
+backend\.venv\Scripts\python backend/scripts/run_eval_agents_sdk.py --sample-per-task-type 5
+```
+
 输出完整 JSON：
 
 ```bash
@@ -37,6 +66,12 @@ backend\.venv\Scripts\python backend/scripts/run_eval.py --runtime-mode mock --j
 
 ```bash
 backend\.venv\Scripts\python backend/scripts/run_eval.py --runtime-mode mock --task-type competition_recommendation
+```
+
+若想对 `agents_sdk` 评测做更小样本抽样：
+
+```bash
+backend\.venv\Scripts\python backend/scripts/run_eval.py --runtime-mode agents_sdk --sample-per-task-type 3
 ```
 
 ## 当前评分方式
@@ -83,11 +118,21 @@ CLI 会输出：
 - `warning_cases`
 - `low_quality_cases`
 - `avg_quality`
+- `direct_success_rate`
+- `fallback_rate`
+- `hard_failure_rate`
+- `awaiting_review_ratio`
+- `artifact_completeness_ratio`
+- `avg_latency_ms`
+- `p95_latency_ms`
 
 单条 case 还会输出：
 
 - `passed`
 - `status`
+- `completion_path`
+- `requested/effective runtime`
+- `fallback=true|false`
 - `quality=当前分数/阈值`
 - `missing`
 - `warnings`
@@ -103,6 +148,20 @@ CLI 会输出：
 
 `awaiting_review` 仍可通过，但会在 warnings 中显式提示。
 
+`direct_success_rate` 的定义是：
+
+- `completed` 或 `awaiting_review`
+- `effective_runtime_mode == "agents_sdk"`
+- `used_mock_fallback == false`
+
+`fallback_rate` 的定义是：
+
+- `used_mock_fallback == true`
+
+`hard_failure_rate` 的定义是：
+
+- 最终状态为 `failed` 或 `cancelled`
+
 ## 测试入口
 
 基础回归测试：
@@ -114,3 +173,4 @@ CLI 会输出：
 - 3 类任务样例数量
 - mock 模式下全量回归通过
 - 平均质量分数高于最低基线
+- runtime summary 中的 direct success / fallback / failure 指标结构存在

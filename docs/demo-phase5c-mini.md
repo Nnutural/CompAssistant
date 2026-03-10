@@ -87,4 +87,5 @@
 
 - 当前 attachments 只是 `payload.attachments` 元数据入口，不代表完整多模态消费。
 - 当前浏览器 smoke 只自动覆盖 recommendation happy path 与一次 retry。
+- 若演示 `agents_sdk` 路径，必须同时展示 `requested_runtime_mode / effective_runtime_mode / used_mock_fallback`，不要把 `completed` 直接解释成 Ark 直出成功。
 - 本轮没有重构 runtime，也没有改 task API。

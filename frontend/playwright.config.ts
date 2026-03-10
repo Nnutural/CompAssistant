@@ -1,10 +1,9 @@
+import { defineConfig, devices } from '@playwright/test'
+
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { defineConfig, devices } from '@playwright/test'
-
 const currentDir = path.dirname(fileURLToPath(import.meta.url))
-const backendDir = path.resolve(currentDir, '../backend')
 
 export default defineConfig({
   testDir: './e2e',
@@ -24,8 +23,8 @@ export default defineConfig({
   },
   webServer: [
     {
-      command: '.\\.venv\\Scripts\\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000',
-      cwd: backendDir,
+      command: 'npm run start:backend:mock',
+      cwd: currentDir,
       env: {
         ...process.env,
         RESEARCH_RUNTIME_MODE: 'mock',

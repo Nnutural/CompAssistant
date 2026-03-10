@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from app.agents.schema_adapter import build_provider_output_schema
 from app.schemas.research_runtime import AgentTaskEnvelope, CompetitionEligibilityArtifact, ResearchLedger
 from app.tools import check_eligibility_rules, unwrap_tool_result
 
@@ -54,6 +55,6 @@ def build_eligibility_checker_agent_with_mode(model: str, *, structured: bool, t
         name="eligibility-checker",
         model=model,
         tools=tools or [],
-        output_type=CompetitionEligibilityArtifact if structured else None,
+        output_type=build_provider_output_schema(CompetitionEligibilityArtifact) if structured else None,
         instructions=instructions,
     )

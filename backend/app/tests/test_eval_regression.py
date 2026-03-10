@@ -32,8 +32,14 @@ class EvaluationRegressionTests(unittest.TestCase):
         self.assertGreater(report.summary.quality.average_score, 0.7)
         self.assertGreaterEqual(report.summary.quality.highest_score, report.summary.quality.lowest_score)
         self.assertLessEqual(report.summary.low_quality_cases, 2)
+        self.assertEqual(report.summary.runtime.requested_runtime_mode, "mock")
+        self.assertEqual(report.summary.runtime.direct_success_rate, 0.0)
+        self.assertEqual(report.summary.runtime.fallback_rate, 0.0)
+        self.assertEqual(report.summary.runtime.hard_failure_rate, 0.0)
+        self.assertGreater(report.summary.runtime.artifact_completeness_ratio, 0.9)
         self.assertTrue(all(result.passed for result in report.results))
         self.assertTrue(all(result.quality_score >= result.quality_threshold for result in report.results))
+        self.assertTrue(all(result.completion_path in {"mock", "awaiting_review"} for result in report.results))
 
 
 if __name__ == "__main__":

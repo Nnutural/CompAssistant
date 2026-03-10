@@ -1,10 +1,13 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.schemas.research_runtime import TaskType
+from app.schemas.research_runtime import RuntimeMode, TaskType
+
+
+CompletionPath = Literal["mock", "provider", "mock_fallback", "awaiting_review", "failed", "cancelled"]
 
 
 class EvaluationModel(BaseModel):
@@ -27,6 +30,14 @@ class EvaluationCaseResult(EvaluationModel):
     passed: bool
     status: str
     current_state: Optional[str] = None
+    completion_path: CompletionPath
+    requested_runtime_mode: Optional[str] = None
+    effective_runtime_mode: Optional[RuntimeMode] = None
+    effective_model: Optional[str] = None
+    used_mock_fallback: bool = False
+    fallback_reason: Optional[str] = None
+    elapsed_ms: Optional[float] = None
+    artifact_complete: bool = False
     missing_fields: List[str] = Field(default_factory=list)
     warnings: List[str] = Field(default_factory=list)
     result_summary: Optional[str] = None
@@ -41,6 +52,17 @@ class EvaluationQualitySummary(EvaluationModel):
     highest_score: float
 
 
+class EvaluationRuntimeSummary(EvaluationModel):
+    requested_runtime_mode: str
+    direct_success_rate: float
+    fallback_rate: float
+    hard_failure_rate: float
+    awaiting_review_ratio: float
+    artifact_completeness_ratio: float
+    avg_latency_ms: float
+    p95_latency_ms: float
+
+
 class EvaluationSummary(EvaluationModel):
     total_cases: int
     passed_cases: int
@@ -48,6 +70,7 @@ class EvaluationSummary(EvaluationModel):
     warning_cases: int
     low_quality_cases: int
     quality: EvaluationQualitySummary
+    runtime: EvaluationRuntimeSummary
 
 
 class EvaluationReport(EvaluationModel):

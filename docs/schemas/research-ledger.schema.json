@@ -236,6 +236,19 @@
       "type": "string",
       "description": "当前运行使用的模型名。"
     },
+    "requested_runtime_mode": {
+      "type": "string",
+      "description": "请求方指定的运行模式。"
+    },
+    "effective_runtime_mode": {
+      "type": "string",
+      "enum": ["mock", "agents_sdk"],
+      "description": "本次运行最终实际生效的运行模式。"
+    },
+    "effective_model": {
+      "type": "string",
+      "description": "本次运行最终实际使用的模型标识。"
+    },
     "base_url": {
       "type": "string",
       "description": "当前运行使用的 Ark 兼容 base URL。"
@@ -507,7 +520,15 @@
         },
         "kind": {
           "type": "string",
-          "enum": ["parse_error", "validation_error", "repair_warning", "runtime_error"]
+          "enum": [
+            "parse_error",
+            "validation_error",
+            "repair_warning",
+            "runtime_error",
+            "schema_compatibility_error",
+            "provider_response_parse_error",
+            "provider_exception"
+          ]
         },
         "message": {
           "type": "string",

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from app.agents.schema_adapter import build_provider_output_schema
 from app.schemas.research_runtime import AgentTaskEnvelope, CompetitionRecommendationArtifact, ResearchLedger
 from app.tools import (
     compose_recommendation_rationale,
@@ -71,7 +72,7 @@ def build_competition_recommender_agent_with_mode(model: str, *, structured: boo
         name="competition-recommender",
         model=model,
         tools=tools or [],
-        output_type=CompetitionRecommendationArtifact if structured else None,
+        output_type=build_provider_output_schema(CompetitionRecommendationArtifact) if structured else None,
         instructions=instructions,
     )
 

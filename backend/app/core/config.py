@@ -16,8 +16,10 @@ class Settings(BaseSettings):
     openai_default_model: str = 'deepseek-v3-2-251201'
     research_runtime_mode: str = 'agents_sdk'
     research_runtime_tracing_enabled: bool = False
+    research_runtime_schema_debug: bool = False
     research_runtime_session_db: str = ''
     research_runtime_strict_mode: bool = False
+    research_runtime_provider_timeout_seconds: float = 45.0
 
     @property
     def sqlalchemy_database_uri(self) -> str:

@@ -72,6 +72,9 @@ class AgentTaskRouteTests(unittest.TestCase):
         self.assertEqual(created.task_id, "run-route-001")
         self.assertEqual(created.status, "queued")
         self.assertEqual(created.current_state, "queued")
+        self.assertEqual(created.requested_runtime_mode, "mock")
+        self.assertEqual(created.effective_runtime_mode, "mock")
+        self.assertEqual(created.effective_model, "mock")
         self.assertGreaterEqual(created.event_count, 3)
         self.assertEqual(created.artifact_count, 0)
 
@@ -79,6 +82,8 @@ class AgentTaskRouteTests(unittest.TestCase):
         self.assertEqual(status_response.status_code, 200)
         status_payload = AgentTaskStatusResponse.model_validate(status_response.json())
         self.assertEqual(status_payload.ledger_id, "ledger-session-route-001")
+        self.assertEqual(status_payload.requested_runtime_mode, "mock")
+        self.assertEqual(status_payload.effective_runtime_mode, "mock")
         self.assertIn(status_payload.status, {"queued", "running", "completed", "awaiting_review"})
 
         events_response = self.client.get(f"/api/agent/tasks/{created.run_id}/events")

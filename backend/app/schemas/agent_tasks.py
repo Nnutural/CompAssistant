@@ -10,6 +10,7 @@ from app.schemas.research_runtime import (
     Priority,
     RequestedBy,
     ResultStatus,
+    RuntimeMode,
     RunEventStatus,
     RunState,
     TaskType,
@@ -55,6 +56,9 @@ class AgentTaskStatusResponse(AgentTaskApiModel):
     completed_states: List[RunState] = Field(default_factory=list)
     error_stage: Optional[RunState] = None
     result: AgentTaskResultSummary
+    requested_runtime_mode: Optional[str] = None
+    effective_runtime_mode: Optional[RuntimeMode] = None
+    effective_model: Optional[str] = None
     used_mock_fallback: bool = False
     fallback_reason: Optional[str] = None
     elapsed_ms: Optional[float] = None
@@ -115,6 +119,9 @@ class AgentTaskHistoryItem(AgentTaskApiModel):
     artifact_count: int = 0
     has_artifacts: bool = False
     awaiting_review: bool = False
+    requested_runtime_mode: Optional[str] = None
+    effective_runtime_mode: Optional[RuntimeMode] = None
+    effective_model: Optional[str] = None
     used_mock_fallback: bool = False
     parent_run_id: Optional[str] = None
     available_actions: List[ControlAction] = Field(default_factory=list)

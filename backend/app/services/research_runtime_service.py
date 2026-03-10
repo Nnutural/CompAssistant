@@ -24,6 +24,7 @@ from app.agents.run_state import (
 from app.agents.sdk_runtime import AgentsSDKResearchRuntime
 from app.core.config import Settings, settings
 from app.repositories.ledger_repository import LedgerRepository
+from app.runtime_modes import resolve_runtime_mode
 from app.schemas.agent_tasks import (
     AgentTaskArtifactItem,
     AgentTaskArtifactsResponse,
@@ -96,7 +97,9 @@ class ResearchRuntimeService:
         self.repository = repository or LedgerRepository()
         self.manager = manager or ResearchRuntimeManager()
         self.sdk_runtime = sdk_runtime
-        self.runtime_mode = runtime_mode or self.settings.research_runtime_mode
+        resolved_runtime_mode = resolve_runtime_mode(runtime_mode or self.settings.research_runtime_mode)
+        self.requested_runtime_mode = resolved_runtime_mode.requested_runtime_mode
+        self.runtime_mode = resolved_runtime_mode.normalized_runtime_mode
         self.strict_mode = self.settings.research_runtime_strict_mode if strict_mode is None else strict_mode
         self._executor = background_executor or ThreadPoolExecutor(max_workers=4, thread_name_prefix="agent-task")
         self._owns_executor = background_executor is None
@@ -269,6 +272,9 @@ class ResearchRuntimeService:
                     artifact_count=artifact_count,
                     has_artifacts=artifact_count > 0,
                     awaiting_review=ledger.current_state == "awaiting_review",
+                    requested_runtime_mode=ledger.requested_runtime_mode,
+                    effective_runtime_mode=ledger.effective_runtime_mode,
+                    effective_model=ledger.effective_model,
                     used_mock_fallback=ledger.used_mock_fallback,
                     parent_run_id=ledger.parent_run_id,
                     available_actions=self._derive_available_actions(ledger),
@@ -568,6 +574,9 @@ class ResearchRuntimeService:
                     checkpoint_callback=checkpoint_callback,
                     abort_if_requested=abort_if_requested,
                 )
+                updated_ledger.requested_runtime_mode = self.requested_runtime_mode
+                updated_ledger.effective_runtime_mode = "agents_sdk"
+                updated_ledger.effective_model = self.settings.openai_default_model
                 logger.info(
                     "[research-runtime] agents_sdk runtime finished task_id=%s ledger_id=%s status=%s elapsed_ms=%.2f",
                     task.task_id,
@@ -587,6 +596,9 @@ class ResearchRuntimeService:
                 )
                 if self.strict_mode:
                     raise RuntimeError(note) from exc
+                ledger.requested_runtime_mode = self.requested_runtime_mode
+                ledger.effective_runtime_mode = "mock"
+                ledger.effective_model = "mock"
                 mark_fallback(ledger, reason=note, actor="service")
                 self.repository.update(ledger)
                 return self._run_mock_with_note(task, ledger, note)
@@ -618,6 +630,8 @@ class ResearchRuntimeService:
                 openai_api_key=self.settings.openai_api_key,
                 openai_base_url=self.settings.openai_base_url,
                 tracing_enabled=self.settings.research_runtime_tracing_enabled,
+                schema_debug_enabled=self.settings.research_runtime_schema_debug,
+                provider_timeout_seconds=self.settings.research_runtime_provider_timeout_seconds,
                 session_db_path=self.settings.research_runtime_session_db,
             )
         return self.sdk_runtime
@@ -648,10 +662,15 @@ class ResearchRuntimeService:
             result.follow_up_items.insert(0, fallback_note)
         if note not in updated_ledger.synthesis_notes:
             updated_ledger.synthesis_notes.append(note)
+        updated_ledger.effective_runtime_mode = "mock"
+        updated_ledger.effective_model = "mock"
         updated_ledger.used_mock_fallback = True
         updated_ledger.fallback_reason = note
         fallback_metadata = [
+            f"requested runtime mode: {self.requested_runtime_mode}",
             f"runtime model: {self.settings.openai_default_model}",
+            "effective runtime mode: mock",
+            "effective model: mock",
             f"runtime base url: {self.settings.openai_base_url}",
             f"tracing enabled: {str(bool(self.settings.research_runtime_tracing_enabled)).lower()}",
             "used mock fallback: true",
@@ -670,23 +689,42 @@ class ResearchRuntimeService:
         return result, updated_ledger
 
     def _prepare_run(self, ledger: ResearchLedger, task: AgentTaskEnvelope, *, reset_tracking: bool) -> None:
-        model = self.settings.openai_default_model if self.runtime_mode == "agents_sdk" else "mock"
-        base_url = self.settings.openai_base_url if self.runtime_mode == "agents_sdk" else None
+        model = self._requested_model()
+        base_url = self._requested_base_url()
         if reset_tracking:
-            reset_run_tracking(ledger, task, model=model, base_url=base_url)
+            reset_run_tracking(
+                ledger,
+                task,
+                model=model,
+                base_url=base_url,
+                requested_runtime_mode=self.requested_runtime_mode,
+                effective_runtime_mode=self._effective_runtime_mode_for_request(),
+                effective_model=self._effective_model_for_request(),
+            )
             transition_state(ledger, "received", actor="service", message="Task received by runtime service.")
         else:
             ledger.model = model
             ledger.base_url = base_url
+            ledger.requested_runtime_mode = self.requested_runtime_mode
+            ledger.effective_runtime_mode = self._effective_runtime_mode_for_request()
+            ledger.effective_model = self._effective_model_for_request()
             ledger.updated_at = datetime.now(timezone.utc)
         transition_state(ledger, "planning", actor="service", message="正在规划运行路径与状态机阶段。")
         ledger.status = "active"
         self.repository.update(ledger)
 
     def _prepare_task_for_background(self, ledger: ResearchLedger, task: AgentTaskEnvelope) -> None:
-        model = self.settings.openai_default_model if self.runtime_mode == "agents_sdk" else "mock"
-        base_url = self.settings.openai_base_url if self.runtime_mode == "agents_sdk" else None
-        reset_run_tracking(ledger, task, model=model, base_url=base_url)
+        model = self._requested_model()
+        base_url = self._requested_base_url()
+        reset_run_tracking(
+            ledger,
+            task,
+            model=model,
+            base_url=base_url,
+            requested_runtime_mode=self.requested_runtime_mode,
+            effective_runtime_mode=self._effective_runtime_mode_for_request(),
+            effective_model=self._effective_model_for_request(),
+        )
         ledger.request_objective = task.objective
         ledger.request_payload = dict(task.payload)
         ledger.request_constraints = list(task.constraints)
@@ -737,6 +775,9 @@ class ResearchRuntimeService:
             request_objective=task.objective,
             request_payload=dict(task.payload),
             request_constraints=list(task.constraints),
+            requested_runtime_mode=self.requested_runtime_mode,
+            effective_runtime_mode=self._effective_runtime_mode_for_request(),
+            effective_model=self._effective_model_for_request(),
             created_at=timestamp,
             updated_at=timestamp,
         )
@@ -775,6 +816,18 @@ class ResearchRuntimeService:
             return parent_run_id.strip()
         return None
 
+    def _requested_model(self) -> str:
+        return self.settings.openai_default_model if self.runtime_mode == "agents_sdk" else "mock"
+
+    def _requested_base_url(self) -> str | None:
+        return self.settings.openai_base_url if self.runtime_mode == "agents_sdk" else None
+
+    def _effective_runtime_mode_for_request(self) -> str:
+        return "agents_sdk" if self.runtime_mode == "agents_sdk" else "mock"
+
+    def _effective_model_for_request(self) -> str:
+        return self.settings.openai_default_model if self.runtime_mode == "agents_sdk" else "mock"
+
     def _coerce_str_list(self, value, default: Iterable[str]) -> list[str]:
         if isinstance(value, list):
             return [str(item) for item in value if str(item).strip()]
@@ -803,6 +856,9 @@ class ResearchRuntimeService:
                 follow_up_items=ledger.follow_up_items,
                 blockers=ledger.blockers,
             ),
+            requested_runtime_mode=ledger.requested_runtime_mode,
+            effective_runtime_mode=ledger.effective_runtime_mode,
+            effective_model=ledger.effective_model,
             used_mock_fallback=ledger.used_mock_fallback,
             fallback_reason=ledger.fallback_reason,
             elapsed_ms=ledger.elapsed_ms,

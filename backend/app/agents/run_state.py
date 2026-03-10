@@ -27,6 +27,9 @@ def reset_run_tracking(
     *,
     model: str | None = None,
     base_url: str | None = None,
+    requested_runtime_mode: str | None = None,
+    effective_runtime_mode: str | None = None,
+    effective_model: str | None = None,
 ) -> None:
     ledger.run_id = task.task_id
     ledger.task_type = task.task_type
@@ -41,6 +44,9 @@ def reset_run_tracking(
     ledger.artifacts = []
     ledger.model = model or ledger.model
     ledger.base_url = base_url or ledger.base_url
+    ledger.requested_runtime_mode = requested_runtime_mode or ledger.requested_runtime_mode
+    ledger.effective_runtime_mode = effective_runtime_mode or ledger.effective_runtime_mode
+    ledger.effective_model = effective_model or ledger.effective_model
     ledger.used_mock_fallback = False
     ledger.fallback_reason = None
     ledger.elapsed_ms = None

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from app.agents.schema_adapter import build_provider_output_schema
 from app.schemas.research_runtime import AgentTaskEnvelope, CompetitionTimelineArtifact, ResearchLedger
 from app.tools import build_timeline_template, unwrap_tool_result
 
@@ -55,6 +56,6 @@ def build_timeline_planner_agent_with_mode(model: str, *, structured: bool, tool
         name="timeline-planner",
         model=model,
         tools=tools or [],
-        output_type=CompetitionTimelineArtifact if structured else None,
+        output_type=build_provider_output_schema(CompetitionTimelineArtifact) if structured else None,
         instructions=instructions,
     )
