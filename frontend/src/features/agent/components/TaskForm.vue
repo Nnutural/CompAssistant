@@ -1,5 +1,5 @@
 <template>
-  <section class="panel-card">
+  <section class="panel-card" data-testid="task-form-card">
     <div class="section-header">
       <div>
         <h2>新建任务</h2>
@@ -13,6 +13,7 @@
         :key="option.value"
         type="button"
         :class="['mode-btn', { active: inputMode === option.value }]"
+        :data-testid="`task-mode-${option.value}`"
         :disabled="submitting"
         @click="setInputMode(option.value)"
       >
@@ -23,7 +24,7 @@
     <form class="task-form" @submit.prevent="submitForm">
       <label class="field">
         <span>任务类型</span>
-        <select v-model="selectedTaskType" :disabled="submitting">
+        <select v-model="selectedTaskType" data-testid="task-type-select" :disabled="submitting">
           <option v-for="option in taskOptions" :key="option.value" :value="option.value">
             {{ option.label }}
           </option>
@@ -42,6 +43,7 @@
             <span>方向</span>
             <input
               v-model="simpleDrafts.competition_recommendation.direction"
+              data-testid="recommendation-direction-input"
               :disabled="submitting"
               type="text"
               placeholder="例如：算法/编程、网络安全、数学/建模"
@@ -50,7 +52,11 @@
 
           <label class="field">
             <span>年级</span>
-            <select v-model="simpleDrafts.competition_recommendation.grade" :disabled="submitting">
+            <select
+              v-model="simpleDrafts.competition_recommendation.grade"
+              data-testid="recommendation-grade-select"
+              :disabled="submitting"
+            >
               <option v-for="option in gradeOptions" :key="option.value" :value="option.value">
                 {{ option.label }}
               </option>
@@ -61,6 +67,7 @@
             <span>能力标签</span>
             <textarea
               v-model="simpleDrafts.competition_recommendation.abilities"
+              data-testid="recommendation-abilities-input"
               :disabled="submitting"
               rows="3"
               placeholder="可用逗号、分号或换行分隔，例如 algorithms, cpp, problem-solving"
@@ -71,6 +78,7 @@
             <span>偏好标签</span>
             <textarea
               v-model="simpleDrafts.competition_recommendation.preference_tags"
+              data-testid="recommendation-preferences-input"
               :disabled="submitting"
               rows="2"
               placeholder="例如 team, onsite, flexible"
@@ -81,6 +89,7 @@
             <span>补充说明</span>
             <textarea
               v-model="simpleDrafts.competition_recommendation.extra_notes"
+              data-testid="recommendation-notes-input"
               :disabled="submitting"
               rows="3"
               placeholder="可选，例如希望偏稳妥、希望含团队协作、希望兼顾奖项含金量"
@@ -90,6 +99,7 @@
           <div class="field">
             <span>附件元数据（可选）</span>
             <input
+              data-testid="recommendation-attachments-input"
               :disabled="submitting"
               type="file"
               multiple
@@ -119,35 +129,64 @@
         </template>
 
         <template v-else-if="selectedTaskType === 'competition_eligibility_check'">
-          <label class="field">
-            <span>竞赛名称或 ID</span>
+          <div class="field">
+            <span>目标竞赛</span>
             <input
               v-model="simpleDrafts.competition_eligibility_check.competition_query"
+              data-testid="eligibility-competition-query-input"
               :disabled="submitting"
               type="text"
-              list="competition-options"
               placeholder="输入竞赛名称搜索，或直接输入 competition_id"
+              @input="handleCompetitionQueryInput('competition_eligibility_check')"
               @change="syncCompetitionQuery('competition_eligibility_check')"
               @blur="syncCompetitionQuery('competition_eligibility_check')"
             />
-            <datalist id="competition-options">
-              <option v-for="item in competitions" :key="item.id" :value="item.name">
-                {{ item.name }}
-              </option>
-            </datalist>
-            <p v-if="competitionsLoading" class="field-hint">正在加载竞赛列表…</p>
+            <div
+              v-if="eligibilitySuggestions.length && !competitionsError"
+              class="suggestion-box"
+              data-testid="competition-suggestion-list"
+            >
+              <button
+                v-for="(item, index) in eligibilitySuggestions"
+                :key="`${item.id}-${item.match_kind}-${item.match_field}`"
+                class="suggestion-item"
+                type="button"
+                :data-testid="`competition-suggestion-${index}`"
+                :disabled="submitting"
+                @mousedown.prevent="selectCompetitionSuggestion('competition_eligibility_check', item)"
+              >
+                <strong>{{ item.name }}</strong>
+                <span>#{{ item.id }} · {{ item.field }}</span>
+              </button>
+            </div>
+            <p v-if="competitionsLoading" class="field-hint">正在加载竞赛列表……</p>
             <p v-else-if="competitionsError" class="field-hint warning">
               {{ competitionsError }} 已自动退化为手动输入 competition_id。
             </p>
-            <p v-else-if="simpleDrafts.competition_eligibility_check.competition_id" class="field-hint">
-              当前将提交 competition_id={{ simpleDrafts.competition_eligibility_check.competition_id }}
+            <p
+              v-else-if="
+                simpleDrafts.competition_eligibility_check.competition_query.trim()
+                && !eligibilitySuggestions.length
+                && !simpleDrafts.competition_eligibility_check.competition_id
+              "
+              class="field-hint warning"
+            >
+              未找到精确匹配。你可以继续输入关键词，或直接在下方手动填写 competition_id。
             </p>
-          </label>
+            <p class="field-hint" data-testid="selected-competition-id">
+              最终将提交 competition_id:
+              <strong>{{ simpleDrafts.competition_eligibility_check.competition_id ?? '未选择' }}</strong>
+              <span v-if="selectedCompetitionLabel('competition_eligibility_check')">
+                （{{ selectedCompetitionLabel('competition_eligibility_check') }}）
+              </span>
+            </p>
+          </div>
 
-          <label v-if="competitionsError" class="field">
-            <span>手动 competition_id</span>
+          <label class="field">
+            <span>手动覆盖 competition_id（可选）</span>
             <input
               :value="simpleDrafts.competition_eligibility_check.competition_id ?? ''"
+              data-testid="eligibility-manual-competition-id"
               :disabled="submitting"
               type="number"
               min="1"
@@ -158,7 +197,11 @@
 
           <label class="field">
             <span>年级</span>
-            <select v-model="simpleDrafts.competition_eligibility_check.grade" :disabled="submitting">
+            <select
+              v-model="simpleDrafts.competition_eligibility_check.grade"
+              data-testid="eligibility-grade-select"
+              :disabled="submitting"
+            >
               <option v-for="option in gradeOptions" :key="option.value" :value="option.value">
                 {{ option.label }}
               </option>
@@ -169,6 +212,7 @@
             <span>已有经历 / 成绩</span>
             <textarea
               v-model="simpleDrafts.competition_eligibility_check.achievements"
+              data-testid="eligibility-achievements-input"
               :disabled="submitting"
               rows="3"
               placeholder="例如 蓝桥杯省赛、算法训练、Python 项目经验"
@@ -179,6 +223,7 @@
             <span>前置条件 / 不足项</span>
             <textarea
               v-model="simpleDrafts.competition_eligibility_check.prerequisites"
+              data-testid="eligibility-prerequisites-input"
               :disabled="submitting"
               rows="3"
               placeholder="例如 需要补强数学基础、还没有团队经验"
@@ -187,7 +232,11 @@
 
           <label class="field">
             <span>参赛方式偏好</span>
-            <select v-model="simpleDrafts.competition_eligibility_check.team_mode" :disabled="submitting">
+            <select
+              v-model="simpleDrafts.competition_eligibility_check.team_mode"
+              data-testid="eligibility-team-mode-select"
+              :disabled="submitting"
+            >
               <option v-for="option in teamModeOptions" :key="option.value" :value="option.value">
                 {{ option.label }}
               </option>
@@ -198,6 +247,7 @@
             <span>补充说明</span>
             <textarea
               v-model="simpleDrafts.competition_eligibility_check.extra_notes"
+              data-testid="eligibility-notes-input"
               :disabled="submitting"
               rows="3"
               placeholder="可选，例如希望优先评估保守路径，或是否接受高难度 stretch 目标"
@@ -207,6 +257,7 @@
           <div class="field">
             <span>附件元数据（可选）</span>
             <input
+              data-testid="eligibility-attachments-input"
               :disabled="submitting"
               type="file"
               multiple
@@ -233,30 +284,64 @@
         </template>
 
         <template v-else>
-          <label class="field">
-            <span>竞赛名称或 ID</span>
+          <div class="field">
+            <span>目标竞赛</span>
             <input
               v-model="simpleDrafts.competition_timeline_plan.competition_query"
+              data-testid="timeline-competition-query-input"
               :disabled="submitting"
               type="text"
-              list="competition-options"
               placeholder="输入竞赛名称搜索，或直接输入 competition_id"
+              @input="handleCompetitionQueryInput('competition_timeline_plan')"
               @change="syncCompetitionQuery('competition_timeline_plan')"
               @blur="syncCompetitionQuery('competition_timeline_plan')"
             />
-            <p v-if="competitionsLoading" class="field-hint">正在加载竞赛列表…</p>
+            <div
+              v-if="timelineSuggestions.length && !competitionsError"
+              class="suggestion-box"
+              data-testid="competition-suggestion-list"
+            >
+              <button
+                v-for="(item, index) in timelineSuggestions"
+                :key="`${item.id}-${item.match_kind}-${item.match_field}`"
+                class="suggestion-item"
+                type="button"
+                :data-testid="`competition-suggestion-${index}`"
+                :disabled="submitting"
+                @mousedown.prevent="selectCompetitionSuggestion('competition_timeline_plan', item)"
+              >
+                <strong>{{ item.name }}</strong>
+                <span>#{{ item.id }} · {{ item.field }}</span>
+              </button>
+            </div>
+            <p v-if="competitionsLoading" class="field-hint">正在加载竞赛列表……</p>
             <p v-else-if="competitionsError" class="field-hint warning">
               {{ competitionsError }} 已自动退化为手动输入 competition_id。
             </p>
-            <p v-else-if="simpleDrafts.competition_timeline_plan.competition_id" class="field-hint">
-              当前将提交 competition_id={{ simpleDrafts.competition_timeline_plan.competition_id }}
+            <p
+              v-else-if="
+                simpleDrafts.competition_timeline_plan.competition_query.trim()
+                && !timelineSuggestions.length
+                && !simpleDrafts.competition_timeline_plan.competition_id
+              "
+              class="field-hint warning"
+            >
+              未找到精确匹配。你可以继续输入关键词，或直接在下方手动填写 competition_id。
             </p>
-          </label>
+            <p class="field-hint" data-testid="selected-competition-id">
+              最终将提交 competition_id:
+              <strong>{{ simpleDrafts.competition_timeline_plan.competition_id ?? '未选择' }}</strong>
+              <span v-if="selectedCompetitionLabel('competition_timeline_plan')">
+                （{{ selectedCompetitionLabel('competition_timeline_plan') }}）
+              </span>
+            </p>
+          </div>
 
-          <label v-if="competitionsError" class="field">
-            <span>手动 competition_id</span>
+          <label class="field">
+            <span>手动覆盖 competition_id（可选）</span>
             <input
               :value="simpleDrafts.competition_timeline_plan.competition_id ?? ''"
+              data-testid="timeline-manual-competition-id"
               :disabled="submitting"
               type="number"
               min="1"
@@ -269,6 +354,7 @@
             <span>截止日期</span>
             <input
               v-model="simpleDrafts.competition_timeline_plan.deadline"
+              data-testid="timeline-deadline-input"
               :disabled="submitting"
               type="datetime-local"
             />
@@ -279,6 +365,7 @@
             <span>每周可投入小时数</span>
             <input
               v-model.number="simpleDrafts.competition_timeline_plan.weekly_hours"
+              data-testid="timeline-weekly-hours-input"
               :disabled="submitting"
               type="number"
               min="1"
@@ -290,6 +377,7 @@
             <span>当前阶段</span>
             <textarea
               v-model="simpleDrafts.competition_timeline_plan.current_stage"
+              data-testid="timeline-current-stage-input"
               :disabled="submitting"
               rows="2"
               placeholder="例如 已完成选题、还缺队友、刚开始准备"
@@ -300,6 +388,7 @@
             <span>目标 / 约束</span>
             <textarea
               v-model="simpleDrafts.competition_timeline_plan.goals_or_constraints"
+              data-testid="timeline-goals-input"
               :disabled="submitting"
               rows="3"
               placeholder="例如 目标是提交 MVP；约束是只有 2 人、希望避免并行任务过多"
@@ -310,6 +399,7 @@
             <span>补充说明</span>
             <textarea
               v-model="simpleDrafts.competition_timeline_plan.extra_notes"
+              data-testid="timeline-notes-input"
               :disabled="submitting"
               rows="3"
               placeholder="可选，例如是否临近期末、是否需要兼顾实习/考试"
@@ -319,6 +409,7 @@
           <div class="field">
             <span>附件元数据（可选）</span>
             <input
+              data-testid="timeline-attachments-input"
               :disabled="submitting"
               type="file"
               multiple
@@ -344,12 +435,12 @@
           </div>
         </template>
 
-        <div class="preview-card">
+        <div class="preview-card" data-testid="simple-preview-card">
           <h3>将要提交的 objective</h3>
-          <p>{{ simplePreview.objective || '未生成 objective' }}</p>
+          <p data-testid="simple-objective-preview">{{ simplePreview.objective || '未生成 objective' }}</p>
 
           <h3>将要提交的 payload 预览</h3>
-          <pre>{{ simplePayloadPreview }}</pre>
+          <pre data-testid="simple-payload-preview">{{ simplePayloadPreview }}</pre>
         </div>
       </template>
 
@@ -362,6 +453,7 @@
           <span>任务目标</span>
           <input
             v-model="activeAdvancedDraft.objective"
+            data-testid="advanced-objective-input"
             :disabled="submitting"
             type="text"
             placeholder="请输入任务目标"
@@ -372,6 +464,7 @@
           <span>Payload JSON</span>
           <textarea
             v-model="activeAdvancedDraft.payloadText"
+            data-testid="advanced-payload-editor"
             :disabled="submitting"
             rows="14"
             spellcheck="false"
@@ -402,7 +495,7 @@
         >
           恢复上次高级草稿
         </button>
-        <button type="submit" class="primary-btn" :disabled="submitting">
+        <button type="submit" class="primary-btn" data-testid="task-submit-button" :disabled="submitting">
           {{ submitting ? '提交中…' : '创建任务' }}
         </button>
       </div>
@@ -417,6 +510,7 @@ import { listCompetitions, type CompetitionOption } from '../../../api/competiti
 import type { AgentTaskCreateRequest } from '../../../types/agent'
 import {
   AGENT_TASK_OPTIONS,
+  COMPETITION_SUGGESTION_LIMIT,
   GRADE_OPTIONS,
   INPUT_MODE_OPTIONS,
   TEAM_MODE_OPTIONS,
@@ -427,6 +521,8 @@ import {
   buildSimpleTaskRequest,
   createAttachmentMetadata,
   resolveCompetitionSelection,
+  searchCompetitionSuggestions,
+  type CompetitionSuggestion,
   type SupportedAgentTaskType,
 } from '../input_adapter'
 
@@ -440,6 +536,8 @@ interface AdvancedBackupDraft {
   objective: string
   payloadText: string
 }
+
+type CompetitionTaskType = 'competition_eligibility_check' | 'competition_timeline_plan'
 
 defineProps<{
   submitting: boolean
@@ -482,6 +580,20 @@ const simplePreview = computed(() =>
 )
 const simplePayloadPreview = computed(() =>
   JSON.stringify(simplePreview.value.payload, null, 2),
+)
+const eligibilitySuggestions = computed(() =>
+  searchCompetitionSuggestions(
+    simpleDrafts.competition_eligibility_check.competition_query,
+    competitions.value,
+    COMPETITION_SUGGESTION_LIMIT,
+  ),
+)
+const timelineSuggestions = computed(() =>
+  searchCompetitionSuggestions(
+    simpleDrafts.competition_timeline_plan.competition_query,
+    competitions.value,
+    COMPETITION_SUGGESTION_LIMIT,
+  ),
 )
 
 function toAdvancedDraft(taskType: SupportedAgentTaskType): AdvancedDraft {
@@ -543,7 +655,7 @@ function resetCurrentDraft() {
   }
 
   const defaults = toAdvancedDraft(selectedTaskType.value)
-  advancedDrafts[selectedTaskType.value] = defaults
+  Object.assign(advancedDrafts[selectedTaskType.value], defaults)
 }
 
 function restoreAdvancedBackup() {
@@ -610,19 +722,34 @@ function submitForm() {
   }
 }
 
-function syncCompetitionQuery(
-  taskType: 'competition_eligibility_check' | 'competition_timeline_plan',
-) {
+function handleCompetitionQueryInput(taskType: CompetitionTaskType) {
   const draft = simpleDrafts[taskType]
   const resolved = resolveCompetitionSelection(draft.competition_query, competitions.value)
-  draft.competition_query = resolved.normalizedQuery
   draft.competition_id = resolved.competitionId
 }
 
-function updateManualCompetitionId(
-  taskType: 'competition_eligibility_check' | 'competition_timeline_plan',
-  event: Event,
-) {
+function syncCompetitionQuery(taskType: CompetitionTaskType) {
+  const draft = simpleDrafts[taskType]
+  const resolved = resolveCompetitionSelection(draft.competition_query, competitions.value)
+  draft.competition_query = resolved.normalizedQuery || draft.competition_query.trim()
+  draft.competition_id = resolved.competitionId
+}
+
+function selectCompetitionSuggestion(taskType: CompetitionTaskType, item: CompetitionSuggestion) {
+  simpleDrafts[taskType].competition_query = item.name
+  simpleDrafts[taskType].competition_id = item.id
+}
+
+function selectedCompetitionLabel(taskType: CompetitionTaskType): string {
+  const competitionId = simpleDrafts[taskType].competition_id
+  if (!competitionId) {
+    return ''
+  }
+  const matched = competitions.value.find((item) => item.id === competitionId)
+  return matched?.name ?? ''
+}
+
+function updateManualCompetitionId(taskType: CompetitionTaskType, event: Event) {
   const target = event.target as HTMLInputElement
   const nextValue = Number.parseInt(target.value, 10)
   simpleDrafts[taskType].competition_id = Number.isFinite(nextValue) ? nextValue : null
@@ -773,6 +900,44 @@ onMounted(() => {
   line-height: 1.6;
 }
 
+.suggestion-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border: 1px solid #d2d2d7;
+  border-radius: 12px;
+  padding: 10px;
+  background: #fafafc;
+}
+
+.suggestion-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid #e8e8ed;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #1d1d1f;
+  cursor: pointer;
+  text-align: left;
+}
+
+.suggestion-item strong {
+  font-size: 14px;
+}
+
+.suggestion-item span {
+  color: #6e6e73;
+  font-size: 13px;
+}
+
+.suggestion-item:hover {
+  border-color: #0071e3;
+  box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.08);
+}
+
 .preview-card {
   border: 1px solid #d2d2d7;
   border-radius: 14px;
@@ -879,7 +1044,8 @@ onMounted(() => {
 .primary-btn:disabled,
 .secondary-btn:disabled,
 .link-btn:disabled,
-.mode-btn:disabled {
+.mode-btn:disabled,
+.suggestion-item:disabled {
   cursor: default;
   opacity: 0.6;
 }
@@ -891,6 +1057,7 @@ onMounted(() => {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .suggestion-item,
   .attachment-list li {
     flex-direction: column;
     align-items: flex-start;

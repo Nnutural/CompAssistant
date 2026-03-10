@@ -34,9 +34,18 @@
   - 只暴露最小产品表单
   - 根据 task_type 自动组装 `objective + payload`
   - 提交前展示 payload 预览
+  - `eligibility / timeline` 会给出竞赛建议列表，但最终仍提交 canonical `competition_id`
 - `高级模式`
   - 保留原始 `objective + payload JSON` 编辑器
   - 适合调试、评测和精确构造 case
+
+## Phase 5D-lite 补充
+
+- 当前仓库已补最小浏览器级 smoke：
+  - `frontend/playwright.config.ts`
+  - `frontend/e2e/agent-panel.spec.ts`
+  - `frontend/e2e/fixtures/agent-demo-cases.json`
+- 这套 smoke 不改变前后端契约，只验证现有面板和 API 的 happy path。
 
 ## payload 不变原则
 

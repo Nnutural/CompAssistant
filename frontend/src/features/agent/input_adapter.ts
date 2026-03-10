@@ -1,5 +1,5 @@
-import type { AgentTaskCreateRequest } from '../../types/agent'
 import type { CompetitionOption } from '../../api/competitions'
+import type { AgentTaskCreateRequest } from '../../types/agent'
 
 export type SupportedAgentTaskType =
   | 'competition_recommendation'
@@ -8,6 +8,8 @@ export type SupportedAgentTaskType =
 
 export type GradeValue = 'freshman' | 'sophomore' | 'junior' | 'senior' | 'graduate'
 export type TeamModeValue = 'team' | 'individual' | 'flexible'
+export type CompetitionSuggestionMatchKind = 'exact_id' | 'exact_name' | 'prefix' | 'contains'
+export type CompetitionSuggestionMatchField = 'id' | 'name' | 'field'
 
 export interface AttachmentMetadata {
   name: string
@@ -53,6 +55,15 @@ export interface SimpleTaskDrafts {
   competition_timeline_plan: TimelineSimpleForm
 }
 
+export interface CompetitionSuggestion {
+  id: number
+  name: string
+  field: string
+  match_kind: CompetitionSuggestionMatchKind
+  match_field: CompetitionSuggestionMatchField
+  label: string
+}
+
 export function buildDefaultSimpleDrafts(): SimpleTaskDrafts {
   return {
     competition_recommendation: {
@@ -64,7 +75,7 @@ export function buildDefaultSimpleDrafts(): SimpleTaskDrafts {
       attachments: [],
     },
     competition_eligibility_check: {
-      competition_query: '蓝桥杯',
+      competition_query: '蓝桥杯全国软件和信息技术专业人才大赛',
       competition_id: 14,
       grade: 'freshman',
       achievements: 'algorithms, python',
@@ -74,12 +85,12 @@ export function buildDefaultSimpleDrafts(): SimpleTaskDrafts {
       attachments: [],
     },
     competition_timeline_plan: {
-      competition_query: '软件杯',
+      competition_query: '中国软件杯大学生软件设计大赛',
       competition_id: 24,
       deadline: '2026-06-20T18:00',
       weekly_hours: 6,
-      current_stage: '已完成初步方向选择，准备细化任务拆解',
-      goals_or_constraints: '希望在截止前完成可提交版本；团队 2 人；优先保证核心功能',
+      current_stage: '已完成初步方向选择，准备细化任务拆解。',
+      goals_or_constraints: '希望在截止前完成可提交版本；团队 2 人；优先保证核心功能。',
       extra_notes: '',
       attachments: [],
     },
@@ -122,13 +133,13 @@ export function resolveCompetitionSelection(
     return { competitionId: Number(normalizedQuery), normalizedQuery }
   }
 
-  const matched = competitions.find(
+  const exactMatch = competitions.find(
     (item) => item.name.trim().toLowerCase() === normalizedQuery.toLowerCase(),
   )
-  if (matched) {
+  if (exactMatch) {
     return {
-      competitionId: matched.id,
-      normalizedQuery: matched.name,
+      competitionId: exactMatch.id,
+      normalizedQuery: exactMatch.name,
     }
   }
 
@@ -136,6 +147,80 @@ export function resolveCompetitionSelection(
     competitionId: null,
     normalizedQuery,
   }
+}
+
+export function searchCompetitionSuggestions(
+  query: string,
+  competitions: CompetitionOption[],
+  limit = 6,
+): CompetitionSuggestion[] {
+  const normalizedQuery = query.trim().toLowerCase()
+  if (!normalizedQuery) {
+    return []
+  }
+
+  const numericQuery = /^\d+$/.test(normalizedQuery) ? Number(normalizedQuery) : null
+  const ranked = competitions
+    .map((item) => {
+      const name = item.name.trim()
+      const field = item.field?.trim() || '未标注领域'
+      const lowerName = name.toLowerCase()
+      const lowerField = field.toLowerCase()
+
+      let matchKind: CompetitionSuggestionMatchKind | null = null
+      let matchField: CompetitionSuggestionMatchField = 'name'
+
+      if (numericQuery !== null && item.id === numericQuery) {
+        matchKind = 'exact_id'
+        matchField = 'id'
+      } else if (lowerName === normalizedQuery) {
+        matchKind = 'exact_name'
+        matchField = 'name'
+      } else if (lowerName.startsWith(normalizedQuery)) {
+        matchKind = 'prefix'
+        matchField = 'name'
+      } else if (lowerField.startsWith(normalizedQuery)) {
+        matchKind = 'prefix'
+        matchField = 'field'
+      } else if (lowerName.includes(normalizedQuery)) {
+        matchKind = 'contains'
+        matchField = 'name'
+      } else if (lowerField.includes(normalizedQuery)) {
+        matchKind = 'contains'
+        matchField = 'field'
+      }
+
+      if (!matchKind) {
+        return null
+      }
+
+      return {
+        id: item.id,
+        name,
+        field,
+        match_kind: matchKind,
+        match_field: matchField,
+        label: `${name} (#${item.id}) · ${field}`,
+      }
+    })
+    .filter((item): item is CompetitionSuggestion => Boolean(item))
+    .sort((left, right) => {
+      const kindScore = kindRank(left.match_kind) - kindRank(right.match_kind)
+      if (kindScore !== 0) {
+        return kindScore
+      }
+      const fieldScore = fieldRank(left.match_field) - fieldRank(right.match_field)
+      if (fieldScore !== 0) {
+        return fieldScore
+      }
+      const nameScore = left.name.length - right.name.length
+      if (nameScore !== 0) {
+        return nameScore
+      }
+      return left.id - right.id
+    })
+
+  return ranked.slice(0, limit)
 }
 
 function buildRecommendationRequest(form: RecommendationSimpleForm): AgentTaskCreateRequest {
@@ -270,7 +355,7 @@ function gradeLabel(grade: GradeValue): string {
 
 function splitTags(value: string): string[] {
   return value
-    .split(/[\n,，;；、]/)
+    .split(/[\n,，;；]/)
     .map((item) => item.trim().toLowerCase())
     .filter(Boolean)
 }
@@ -289,4 +374,23 @@ function inferAttachmentKind(mimeType: string): string {
     return 'archive'
   }
   return 'document'
+}
+
+function kindRank(value: CompetitionSuggestionMatchKind): number {
+  const ranks: Record<CompetitionSuggestionMatchKind, number> = {
+    exact_id: 0,
+    exact_name: 1,
+    prefix: 2,
+    contains: 3,
+  }
+  return ranks[value]
+}
+
+function fieldRank(value: CompetitionSuggestionMatchField): number {
+  const ranks: Record<CompetitionSuggestionMatchField, number> = {
+    id: 0,
+    name: 1,
+    field: 2,
+  }
+  return ranks[value]
 }

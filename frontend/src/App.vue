@@ -10,6 +10,7 @@
         <button
           type="button"
           :class="['menu-item', { active: currentView === 'competitions' }]"
+          data-testid="nav-competitions"
           @click="currentView = 'competitions'"
         >
           竞赛列表
@@ -17,6 +18,7 @@
         <button
           type="button"
           :class="['menu-item', { active: currentView === 'guide' }]"
+          data-testid="nav-guide"
           @click="currentView = 'guide'"
         >
           使用说明
@@ -24,6 +26,7 @@
         <button
           type="button"
           :class="['menu-item', { active: currentView === 'agent' }]"
+          data-testid="nav-agent"
           @click="currentView = 'agent'"
         >
           智能体面板

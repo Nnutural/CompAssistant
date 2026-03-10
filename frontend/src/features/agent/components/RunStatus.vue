@@ -1,11 +1,19 @@
 <template>
-  <section class="panel-card">
+  <section class="panel-card" data-testid="run-status-card">
     <div class="section-header">
       <div>
         <h3>当前任务</h3>
         <p>查看状态推进、降级信息、审核提示和控制入口。</p>
       </div>
-      <button v-if="runStatus" class="refresh-btn" type="button" @click="$emit('refresh')">刷新</button>
+      <button
+        v-if="runStatus"
+        class="refresh-btn"
+        data-testid="run-status-refresh"
+        type="button"
+        @click="$emit('refresh')"
+      >
+        刷新
+      </button>
     </div>
 
     <div v-if="!runStatus" class="empty-state">
@@ -16,7 +24,7 @@
       <div class="status-grid">
         <div class="status-item">
           <span class="status-label">Run ID</span>
-          <code>{{ runStatus.run_id }}</code>
+          <code data-testid="run-status-run-id">{{ runStatus.run_id }}</code>
         </div>
         <div class="status-item">
           <span class="status-label">任务类型</span>
@@ -24,13 +32,13 @@
         </div>
         <div class="status-item">
           <span class="status-label">状态</span>
-          <span class="status-badge" :data-status="runStatus.status">
+          <span class="status-badge" :data-status="runStatus.status" data-testid="run-status-status">
             {{ statusLabel }}
           </span>
         </div>
         <div class="status-item">
           <span class="status-label">当前阶段</span>
-          <span>{{ currentStateLabel }}</span>
+          <span data-testid="run-status-current-state">{{ currentStateLabel }}</span>
         </div>
       </div>
 
@@ -46,6 +54,7 @@
         <button
           v-if="runStatus.available_actions.includes('retry')"
           class="action-btn"
+          data-testid="run-action-retry"
           type="button"
           :disabled="actionBusy"
           @click="$emit('retry')"
@@ -55,6 +64,7 @@
         <button
           v-if="runStatus.available_actions.includes('cancel')"
           class="action-btn warning"
+          data-testid="run-action-cancel"
           type="button"
           :disabled="actionBusy"
           @click="$emit('cancel')"
@@ -64,6 +74,7 @@
         <button
           v-if="runStatus.available_actions.includes('review_accept')"
           class="action-btn success"
+          data-testid="run-action-review-accept"
           type="button"
           :disabled="actionBusy"
           @click="$emit('review', 'accept')"
@@ -73,6 +84,7 @@
         <button
           v-if="runStatus.available_actions.includes('review_reject')"
           class="action-btn danger"
+          data-testid="run-action-review-reject"
           type="button"
           :disabled="actionBusy"
           @click="$emit('review', 'reject')"
@@ -82,6 +94,7 @@
         <button
           v-if="runStatus.available_actions.includes('review_annotate')"
           class="action-btn secondary"
+          data-testid="run-action-review-annotate"
           type="button"
           :disabled="actionBusy"
           @click="$emit('review', 'annotate')"

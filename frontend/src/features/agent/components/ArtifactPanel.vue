@@ -1,5 +1,5 @@
 <template>
-  <section class="panel-card">
+  <section class="panel-card" data-testid="artifact-panel-card">
     <div class="section-header">
       <div>
         <h3>结果产物</h3>
@@ -8,6 +8,7 @@
       <button
         v-if="runStatus"
         class="refresh-btn"
+        data-testid="artifact-panel-refresh"
         type="button"
         :disabled="loading"
         @click="$emit('refresh')"
@@ -36,8 +37,13 @@
       当前终态任务没有可展示的结构化产物。
     </div>
 
-    <div v-else class="artifact-list">
-      <article v-for="item in items" :key="item.artifact_id" class="artifact-card">
+    <div v-else class="artifact-list" data-testid="artifact-list">
+      <article
+        v-for="item in items"
+        :key="item.artifact_id"
+        class="artifact-card"
+        data-testid="artifact-item"
+      >
         <header class="artifact-header">
           <div>
             <h4>{{ item.title }}</h4>

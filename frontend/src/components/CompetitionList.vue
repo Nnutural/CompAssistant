@@ -1,5 +1,5 @@
 <template>
-  <div class="competition-list">
+  <div class="competition-list" data-testid="competitions-view">
     <!-- 顶部筛选栏 -->
     <div class="filter-bar">
       <div class="search-box">

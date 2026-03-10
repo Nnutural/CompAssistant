@@ -1,0 +1,66 @@
+[
+  {
+    "case_id": "recommendation-001",
+    "task_type": "competition_recommendation",
+    "mode": "simple",
+    "input": {
+      "direction": "算法/编程",
+      "grade": "freshman",
+      "abilities": "algorithms, cpp, problem-solving",
+      "preference_tags": "team, onsite",
+      "extra_notes": "希望优先推荐适合新生、便于团队配合的比赛。"
+    },
+    "expected_status": "completed",
+    "expected_observations": {
+      "status": ["排队中", "运行中", "已完成"],
+      "events": ["已接收", "规划中", "校验输出"],
+      "artifacts": ["推荐结果"],
+      "history": ["最近任务中出现新的 run_id"],
+      "control_action": "retry"
+    }
+  },
+  {
+    "case_id": "eligibility-009",
+    "task_type": "competition_eligibility_check",
+    "mode": "simple",
+    "input": {
+      "competition_query": "全国大学生智能汽车竞赛",
+      "competition_id": 10,
+      "grade": "sophomore",
+      "achievements": "robotics, control, testing",
+      "prerequisites": "需要确认是否具备完整硬件调试条件",
+      "team_mode": "team",
+      "extra_notes": "用于演示待审核任务。"
+    },
+    "expected_status": "awaiting_review",
+    "expected_observations": {
+      "status": ["待审核"],
+      "events": ["待审核"],
+      "artifacts": ["资格判断结果"],
+      "history": ["历史列表可按待审核筛选"],
+      "control_action": "review"
+    }
+  },
+  {
+    "case_id": "timeline-001",
+    "task_type": "competition_timeline_plan",
+    "mode": "simple",
+    "input": {
+      "competition_query": "中国软件杯大学生软件设计大赛",
+      "competition_id": 24,
+      "deadline": "2026-06-20T18:00",
+      "weekly_hours": 6,
+      "current_stage": "已完成初步方向选择，准备拆分任务。",
+      "goals_or_constraints": "目标是按时提交 MVP；团队 2 人；希望降低并行任务数量。",
+      "extra_notes": "用于演示 artifacts 和时间线结果。"
+    },
+    "expected_status": "completed",
+    "expected_observations": {
+      "status": ["运行中", "已完成"],
+      "events": ["读取本地上下文", "持久化产物"],
+      "artifacts": ["时间线计划结果"],
+      "history": ["最近任务列表出现 timeline run"],
+      "control_action": "retry"
+    }
+  }
+]

@@ -1,60 +1,35 @@
 # CompAssistant
 
-CompAssistant 已不再只是一个 `competitions` 列表项目，而是一个同时包含两条能力线的竞赛助手仓库：
+CompAssistant 现在不再只是一个 `competitions` 列表项目，而是一个保留原有竞赛数据能力、同时补齐最小 Agent 演示闭环的仓库。
 
-- 原有的竞赛列表与详情 API
-- 基于 Ark-only runtime 的竞赛任务智能体能力，支持本地 mock fallback
+当前已经落到 Phase 5D-lite，核心能力包括：
 
-当前主任务类型：
+- 原有 `competitions` 列表与详情 API
+- Ark-only agent runtime，保留本地 mock fallback
+- 三类主任务：
+  - `competition_recommendation`
+  - `competition_eligibility_check`
+  - `competition_timeline_plan`
+- `task / run / events / artifacts` API
+- 历史列表、`retry / cancel / review`
+- Simple / Advanced 双模式输入
+- 本地 `run_eval.py` 回归
+- 最小浏览器级 Playwright smoke
 
-- `competition_recommendation`
-- `competition_eligibility_check`
-- `competition_timeline_plan`
+`payload` 仍然是内部 canonical representation。Simple Mode 只是输入适配层，不改变现有 task API；Advanced Mode 继续保留给调试、演示和评测使用。
 
-legacy `research_plan` 仍保兼容，但不再是主演示路径。
+## 当前主链路
 
-## 当前系统能力
+后端真实链路：
 
-- `POST /api/agent/tasks` 支持“创建即返回 `run_id` + `queued`，后台线程继续执行”
-- `GET /api/agent/tasks/{run_id}`、`/events`、`/artifacts` 可轮询读取任务状态、事件与结果
-- `GET /api/agent/tasks` 支持历史任务列表、筛选与分页
-- `retry / cancel / review` 已具备最小控制闭环
-- 本地 `run_eval.py` 可运行结构 + 质量混合回归
-- 前端已有最小 Agent 面板，支持历史、控制和双模式输入
+`FastAPI route -> ResearchRuntimeService -> mock manager / Ark-only Agents SDK runtime -> LedgerRepository`
 
-## 当前前端输入层
+保持不变的边界：
 
-Agent 面板现在提供两种输入模式：
-
-- `简洁模式`
-  - 面向普通用户
-  - 使用自然表单输入
-  - 前端自动组装 `objective + payload`
-  - 提交前可预览将要发送的 payload
-- `高级模式`
-  - 面向调试、回归测试和精确构造 case
-  - 保留原始 `objective + payload JSON` 编辑入口
-
-重要约束：
-
-- `payload` 仍然是内部 canonical representation
-- `Simple Mode` 只是输入适配层，不改变现有 task API
-- 附件当前仅支持 `payload.attachments` 元数据预留，不代表已经实现完整多模态推理
-
-## 后端主链路
-
-当前后端真实链路为：
-
-`FastAPI route -> ResearchRuntimeService -> mock manager 或 Ark-only Agents SDK runtime -> LedgerRepository`
-
-保留能力包括：
-
-- Ark-only + `chat_completions`
-- mock fallback
-- ledger 状态机
-- events / artifacts
-- output repair / validation
-- 本地领域数据 grounding
+- 不引入新的 agent runtime 框架
+- 不引入 WebSocket / Redis / Celery / RAG / 向量数据库
+- 不破坏现有 `competitions` API
+- 不删除 mock fallback
 
 ## API
 
@@ -63,7 +38,7 @@ Agent 面板现在提供两种输入模式：
 - `GET /api/competitions`
 - `GET /api/competitions/{id}`
 
-推荐接入的智能体任务 API：
+推荐前端接入的 Agent API：
 
 - `POST /api/agent/tasks`
 - `GET /api/agent/tasks`
@@ -79,22 +54,41 @@ Agent 面板现在提供两种输入模式：
 - `POST /api/research-runtime/run`
 - `GET /api/research-runtime/ledger/{ledger_id}`
 
-前端新接入应优先使用 `/api/agent/tasks/*`。
+## 前端输入层
 
-## 本地数据
+Agent 面板位于侧栏“智能体面板”入口，当前支持：
 
-受版本控制的基础数据位于 `backend/data/`：
+- 简洁模式
+  - 使用自然表单输入
+  - 自动组装 `objective + payload`
+  - 提交前展示 payload 预览
+  - `eligibility / timeline` 支持竞赛名称搜索建议，最终仍提交 canonical `competition_id`
+- 高级模式
+  - 保留原始 `objective + payload JSON` 编辑器
+  - 适合调试、回归测试和精确构造 case
 
-- `competitions.json`
-- `competitions_enriched.json`
-- `eligibility_rules.json`
-- `recommendation_rubric.json`
-- `timeline_templates.json`
-- `evals/*.json`
+附件当前只作为 `payload.attachments` 元数据入口，不代表已经实现完整多模态消费链路。
 
-运行时 ledger、SQLite、WAL/SHM 等产物不应提交到仓库。
+## 浏览器级 smoke
 
-## 启动方式
+前端新增了最小 Playwright smoke，覆盖一条 recommendation happy path：
+
+- 打开 Agent 面板
+- 使用 Simple Mode 填表
+- 查看 payload 预览
+- 切到 Advanced Mode 确认 JSON 仍可见
+- 提交任务并轮询结果
+- 查看事件时间线、artifacts、最近任务
+- 执行一次 `retry`
+- 返回 `competitions` 页面确认未受影响
+
+相关文件：
+
+- `frontend/playwright.config.ts`
+- `frontend/e2e/agent-panel.spec.ts`
+- `frontend/e2e/fixtures/agent-demo-cases.json`
+
+## 运行方式
 
 后端：
 
@@ -116,17 +110,14 @@ npm run dev
 
 ## 测试与评测
 
-后端测试：
+后端必要回归：
 
 ```bash
-backend\.venv\Scripts\python -m unittest discover -s backend/app/tests
-```
-
-前端构建校验：
-
-```bash
-cd frontend
-npm run build
+backend\.venv\Scripts\python -m unittest \
+  backend.app.tests.test_agent_task_routes \
+  backend.app.tests.test_agent_task_history_routes \
+  backend.app.tests.test_agent_task_control_routes \
+  backend.app.tests.test_competitions_routes
 ```
 
 本地评测：
@@ -135,25 +126,33 @@ npm run build
 backend\.venv\Scripts\python backend/scripts/run_eval.py --runtime-mode mock
 ```
 
-JSON 报告：
+前端构建：
 
 ```bash
-backend\.venv\Scripts\python backend/scripts/run_eval.py --runtime-mode mock --json
+cd frontend
+npm run build
 ```
 
-## 相关文档
+浏览器 smoke：
+
+```bash
+cd frontend
+npm run test:e2e:install
+npm run test:e2e
+```
+
+## 文档
 
 - `docs/current-state.md`
 - `docs/frontend-integration.md`
 - `docs/evaluation.md`
 - `docs/operator-guide.md`
-- `docs/demo-phase5b.md`
+- `docs/demo-phase5c-mini.md`
 
-## 当前边界
+## 当前限制
 
-- 不引入 WebSocket、Redis、Celery、消息队列
-- 不引入 RAG、向量数据库、联网检索
-- 不重写现有 competitions 页面
-- 不删除 mock fallback
-- 当前附件/多模态仅预留输入元数据，不代表 runtime 已消费
-- 当前没有重构 runtime，只是逐步把输入层、控制面和可观测性补齐
+- 本轮没有重构 runtime
+- 后台执行仍然是进程内线程池
+- attachments 仍只是元数据入口，不是完整多模态能力
+- 浏览器级 smoke 目前只覆盖 1 条 happy path
+- `competitions` 页面与 API 保持兼容，未被本轮改动破坏

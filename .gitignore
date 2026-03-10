@@ -109,3 +109,7 @@ frontend/dist/
 frontend/build/
 frontend/.vite/
 frontend/coverage/
+playwright-report/
+test-results/
+frontend/playwright-report/
+frontend/test-results/

@@ -1,5 +1,5 @@
 <template>
-  <div class="agent-panel">
+  <div class="agent-panel" data-testid="agent-panel-view">
     <TaskForm :submitting="isSubmitting" @submit="handleSubmit" />
 
     <div class="panel-grid">

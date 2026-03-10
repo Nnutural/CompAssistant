@@ -12,6 +12,7 @@ import type {
 
 export const AGENT_POLL_INTERVAL_MS = 1500
 export const AGENT_HISTORY_PAGE_SIZE = 8
+export const COMPETITION_SUGGESTION_LIMIT = 6
 
 export const TERMINAL_RUN_STATUSES: AgentTaskRunStatus[] = [
   'completed',
@@ -40,9 +41,9 @@ export const GRADE_OPTIONS: Array<{ label: string; value: GradeValue }> = [
 ]
 
 export const TEAM_MODE_OPTIONS: Array<{ label: string; value: TeamModeValue }> = [
-  { label: '团队协作', value: 'team' },
-  { label: '个人参赛', value: 'individual' },
-  { label: '灵活/都可', value: 'flexible' },
+  { label: '偏好组队', value: 'team' },
+  { label: '偏好个人', value: 'individual' },
+  { label: '都可以', value: 'flexible' },
 ]
 
 export const STATUS_LABELS: Record<AgentTaskRunStatus, string> = {
@@ -112,7 +113,7 @@ const DEFAULT_TASK_DRAFTS: Record<
   },
   competition_eligibility_check: {
     task_type: 'competition_eligibility_check',
-    objective: '判断当前学生画像是否适合参加目标竞赛。',
+    objective: '判断当前学生画像是否适合参加目标竞赛，并说明缺失条件与注意事项。',
     payload: {
       competition_id: 14,
       profile: {
@@ -124,7 +125,7 @@ const DEFAULT_TASK_DRAFTS: Record<
   },
   competition_timeline_plan: {
     task_type: 'competition_timeline_plan',
-    objective: '为目标竞赛生成截止日期前的倒排时间线计划。',
+    objective: '为目标竞赛生成截止日前的倒排时间线计划。',
     payload: {
       competition_id: 24,
       deadline: '2026-06-20T18:00:00+00:00',

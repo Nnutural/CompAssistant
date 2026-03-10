@@ -1,11 +1,17 @@
 <template>
-  <section class="panel-card">
+  <section class="panel-card" data-testid="task-history-card">
     <div class="section-header">
       <div>
         <h3>最近任务</h3>
         <p>支持按状态和任务类型筛选，并可切换查看历史运行记录。</p>
       </div>
-      <button class="refresh-btn" type="button" :disabled="loading" @click="$emit('refresh')">
+      <button
+        class="refresh-btn"
+        data-testid="task-history-refresh"
+        type="button"
+        :disabled="loading"
+        @click="$emit('refresh')"
+      >
         {{ loading ? '刷新中…' : '刷新列表' }}
       </button>
     </div>
@@ -13,7 +19,7 @@
     <div class="filters-row">
       <label class="filter-field">
         <span>状态</span>
-        <select :value="statusFilter" @change="updateStatusFilter">
+        <select :value="statusFilter" data-testid="history-status-filter" @change="updateStatusFilter">
           <option v-for="option in statusOptions" :key="option.value || 'all'" :value="option.value">
             {{ option.label }}
           </option>
@@ -22,7 +28,11 @@
 
       <label class="filter-field">
         <span>任务类型</span>
-        <select :value="taskTypeFilter" @change="updateTaskTypeFilter">
+        <select
+          :value="taskTypeFilter"
+          data-testid="history-task-type-filter"
+          @change="updateTaskTypeFilter"
+        >
           <option value="">全部任务</option>
           <option v-for="option in taskOptions" :key="option.value" :value="option.value">
             {{ option.label }}
@@ -35,7 +45,7 @@
       当前筛选条件下没有历史任务。
     </div>
 
-    <div v-else class="history-list">
+    <div v-else class="history-list" data-testid="task-history-list">
       <article
         v-for="item in items"
         :key="item.run_id"
@@ -61,13 +71,26 @@
         </div>
 
         <div class="history-actions">
-          <button type="button" class="secondary-btn" @click="$emit('select', item.run_id)">查看</button>
+          <button
+            type="button"
+            class="secondary-btn"
+            :data-testid="`history-select-${item.run_id}`"
+            @click="$emit('select', item.run_id)"
+          >
+            查看
+          </button>
         </div>
       </article>
     </div>
 
     <div v-if="canLoadMore" class="load-more-row">
-      <button type="button" class="secondary-btn" :disabled="loading" @click="$emit('load-more')">
+      <button
+        type="button"
+        class="secondary-btn"
+        data-testid="task-history-load-more"
+        :disabled="loading"
+        @click="$emit('load-more')"
+      >
         加载更多
       </button>
     </div>

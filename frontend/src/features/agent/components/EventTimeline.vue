@@ -1,5 +1,5 @@
 <template>
-  <section class="panel-card">
+  <section class="panel-card" data-testid="event-timeline-card">
     <div class="section-header">
       <div>
         <h3>事件时间线</h3>
@@ -11,7 +11,7 @@
       当前还没有事件记录。
     </div>
 
-    <ol v-else class="timeline">
+    <ol v-else class="timeline" data-testid="event-timeline-list">
       <li v-for="item in items" :key="item.event_id" class="timeline-item">
         <div class="timeline-dot" :data-status="item.status"></div>
         <div class="timeline-body">

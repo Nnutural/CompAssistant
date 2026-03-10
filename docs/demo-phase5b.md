@@ -1,4 +1,6 @@
-# Phase 5C-mini Demo
+# 历史 Demo（Phase 5B / 5C-mini）
+
+本文件保留旧阶段演示说明。当前建议优先使用 `docs/demo-phase5c-mini.md` 作为录屏和答辩入口。
 
 ## 目标
 
