@@ -59,8 +59,9 @@
           <span>{{ formatDate(item.updated_at || item.created_at) }}</span>
           <span v-if="item.has_artifacts">有产物</span>
           <span v-if="item.awaiting_review">待审核</span>
-          <span v-if="item.used_mock_fallback">已降级</span>
-          <span v-if="item.effective_runtime_mode">实际模式：{{ item.effective_runtime_mode }}</span>
+          <span v-if="providerPathLabel(item)">{{ providerPathLabel(item) }}</span>
+          <span v-else-if="isMockFallback(item)">Mock 降级完成</span>
+          <span v-else-if="item.effective_runtime_mode">实际模式：{{ item.effective_runtime_mode }}</span>
         </div>
 
         <div class="history-actions">
@@ -134,6 +135,26 @@ function taskLabel(taskType?: string | null) {
 
 function formatDate(value: string) {
   return new Date(value).toLocaleString('zh-CN')
+}
+
+function isMockFallback(item: AgentTaskHistoryItem) {
+  return item.requested_runtime_mode === 'agents_sdk' && item.used_mock_fallback
+}
+
+function providerPathLabel(item: AgentTaskHistoryItem) {
+  if (item.requested_runtime_mode !== 'agents_sdk' || item.used_mock_fallback) {
+    return ''
+  }
+  if (item.provider_success_path === 'plain_json_fallback') {
+    return 'Ark JSON fallback 成功'
+  }
+  if (item.provider_success_path === 'structured') {
+    return 'Ark structured 直出'
+  }
+  if (item.effective_runtime_mode === 'agents_sdk') {
+    return 'Ark 直出'
+  }
+  return ''
 }
 </script>
 

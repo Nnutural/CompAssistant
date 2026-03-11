@@ -46,9 +46,14 @@ class StaticAgentOutputSchema(AgentOutputSchemaBase):  # type: ignore[misc]
 def sanitize_provider_json_schema(schema: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
     payload = deepcopy(schema)
     changes: list[str] = []
+    strip_keys = {"title", "default", "examples"}
 
     def _walk(node: Any, path: str) -> None:
         if isinstance(node, dict):
+            for key in strip_keys:
+                if key in node:
+                    changes.append(f"{path}.{key}")
+                    node.pop(key, None)
             if node.get("type") == "object" and "additionalProperties" in node and node["additionalProperties"] is not False:
                 changes.append(f"{path}.additionalProperties")
                 node.pop("additionalProperties", None)

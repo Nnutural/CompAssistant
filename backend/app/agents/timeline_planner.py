@@ -44,12 +44,16 @@ def build_timeline_planner_agent_with_mode(model: str, *, structured: bool, tool
         "Do not invent external calendar events."
     )
     if structured:
-        instructions += " Return only structured output that matches CompetitionTimelineArtifact."
+        instructions += (
+            " Return raw JSON only, with no prose, no markdown fences, and no wrapper text. "
+            "The top-level object must match CompetitionTimelineArtifact exactly. "
+            "Do not add extra commentary fields."
+        )
     else:
         instructions += (
             " Return only a JSON object with keys: task_type, competition_id, competition_name, deadline, "
             "preparation_checklist, milestones, stage_plan, reverse_schedule. "
-            "Do not wrap the JSON in markdown fences."
+            "Do not wrap the JSON in markdown fences, and do not add prose before or after the JSON."
         )
 
     return Agent(

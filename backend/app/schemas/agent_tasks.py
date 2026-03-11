@@ -59,6 +59,7 @@ class AgentTaskStatusResponse(AgentTaskApiModel):
     requested_runtime_mode: Optional[str] = None
     effective_runtime_mode: Optional[RuntimeMode] = None
     effective_model: Optional[str] = None
+    provider_success_path: Optional[Literal["structured", "plain_json_fallback"]] = None
     used_mock_fallback: bool = False
     fallback_reason: Optional[str] = None
     elapsed_ms: Optional[float] = None
@@ -122,6 +123,7 @@ class AgentTaskHistoryItem(AgentTaskApiModel):
     requested_runtime_mode: Optional[str] = None
     effective_runtime_mode: Optional[RuntimeMode] = None
     effective_model: Optional[str] = None
+    provider_success_path: Optional[Literal["structured", "plain_json_fallback"]] = None
     used_mock_fallback: bool = False
     parent_run_id: Optional[str] = None
     available_actions: List[ControlAction] = Field(default_factory=list)

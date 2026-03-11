@@ -43,6 +43,10 @@
           <span data-testid="run-status-effective-model">{{ runStatus.effective_model || '未记录' }}</span>
         </div>
         <div class="status-item">
+          <span class="status-label">Provider 路径</span>
+          <span data-testid="run-status-provider-success-path">{{ providerPathLabel }}</span>
+        </div>
+        <div class="status-item">
           <span class="status-label">事件 / 产物</span>
           <span>{{ runStatus.event_count }} / {{ runStatus.artifact_count }}</span>
         </div>
@@ -131,6 +135,15 @@
         <p>{{ runStatus.fallback_reason || '当前结果使用了 mock 降级路径。' }}</p>
       </div>
 
+      <div
+        v-if="executionSemantics"
+        :class="['alert-box', executionSemantics.tone]"
+        data-testid="run-status-execution-semantics"
+      >
+        <strong>{{ executionSemantics.title }}</strong>
+        <p>{{ executionSemantics.description }}</p>
+      </div>
+
       <div v-if="networkError" class="alert-box error" data-testid="run-status-network-error">
         <strong>请求失败</strong>
         <p>{{ networkError }}</p>
@@ -173,6 +186,52 @@ const taskTypeLabel = computed(() => {
   return TASK_TYPE_LABELS[props.runStatus.task_type] ?? props.runStatus.task_type
 })
 
+const providerPathLabel = computed(() => {
+  const current = props.runStatus
+  if (!current?.provider_success_path) return '未记录'
+  return current.provider_success_path === 'plain_json_fallback' ? 'plain JSON fallback' : 'structured'
+})
+
+const executionSemantics = computed(() => {
+  const current = props.runStatus
+  if (!current) return null
+  if (current.requested_runtime_mode === 'agents_sdk' && current.used_mock_fallback) {
+    return {
+      tone: 'warning',
+      title: '本次结果来自 mock 降级',
+      description:
+        current.fallback_reason ||
+        '本次原本请求 Ark Agents SDK，但真实 provider 路径失败，最终由 mock 补全产物。',
+    }
+  }
+  if (
+    current.requested_runtime_mode === 'agents_sdk' &&
+    current.effective_runtime_mode === 'agents_sdk' &&
+    !current.used_mock_fallback
+  ) {
+    const providerLabel =
+      current.provider_success_path === 'plain_json_fallback' ? 'Ark JSON fallback 收敛成功' : 'Ark structured 直出'
+    return {
+      tone: current.status === 'awaiting_review' ? 'info' : 'success',
+      title: current.status === 'awaiting_review' ? `${providerLabel}，当前待审核` : providerLabel,
+      description:
+        current.status === 'awaiting_review'
+          ? '真实 provider 已返回结果，但当前输出仍需人工审核后再视为最终完成。'
+          : current.provider_success_path === 'plain_json_fallback'
+            ? '本次请求先尝试 structured 输出，随后由 Ark 的 plain JSON 路径完成收敛，未使用 mock。'
+            : '本次请求由 Ark structured 输出直接完成，未使用 JSON fallback 或 mock fallback。',
+    }
+  }
+  if (current.requested_runtime_mode === 'mock') {
+    return {
+      tone: 'info',
+      title: '本次结果来自本地 mock',
+      description: '当前运行未请求真实 provider，结果来自本地 mock 路径。',
+    }
+  }
+  return null
+})
+
 function stateLabel(state: AgentRunState) {
   return STATE_LABELS[state] ?? state
 }
@@ -207,6 +266,7 @@ function stateLabel(state: AgentRunState) {
 .action-btn:disabled { opacity:.6; cursor:default; }
 .alert-box { margin-top:16px; border-radius:12px; padding:12px 14px; background:#f5f5f7; color:#1d1d1f; }
 .alert-box.info { background:#eef6ff; color:#0055aa; }
+.alert-box.success { background:#e8f5e9; color:#1e7a34; }
 .alert-box.warning { background:#fff8e1; color:#915f00; }
 .alert-box.error { background:#fff1f0; color:#b42318; }
 .alert-box ul { margin-top:8px; padding-left:18px; }

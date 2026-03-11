@@ -1,5 +1,75 @@
 # CompAssistant
 
+## Phase 5G Update
+
+### Phase 5G note
+
+This repository is now beyond Phase 5F and includes a focused Phase 5G hardening pass.
+
+What changed in this pass:
+
+- `recommendation-003` is no longer primarily blocked by the old `Max turns (10) exceeded -> JSON fallback timeout -> mock fallback` chain
+- the `competition_recommendation` provider tool path was narrowed so the model now sees one compact local grounding tool instead of a multi-tool recommendation loop
+- recommendation runs now use per-run unique SDK session ids, which prevents old SQLite session memory from contaminating repeated spot checks
+- runtime reporting now distinguishes:
+  - `structured_direct_success`
+  - `json_fallback_success`
+  - `mock_fallback_success`
+- there is now a dedicated single-case Ark debug script for `recommendation-003` style failures:
+  - `backend/scripts/debug_agents_sdk_case.py`
+- CI now exposes a manual workflow path for single-case `agents_sdk` repro, in addition to the existing spot check job
+
+Current interpretation:
+
+- `completed` + `effective_runtime_mode=agents_sdk` + `provider_success_path=structured` means true Ark structured direct success
+- `completed` + `effective_runtime_mode=agents_sdk` + `provider_success_path=plain_json_fallback` means Ark structured failed, but the provider-side JSON fallback still completed without mock
+- `completed` + `used_mock_fallback=true` means provider failed and mock finished the run
+
+Latest local Phase 5G spot check:
+
+- `recommendation-003` now completes on the real `agents_sdk` structured path with strict mode and no mock fallback
+- the latest `agents_sdk` 3x3 sample produced `direct_success_rate=1.000`, `structured_direct_success_rate=1.000`, `mock_fallback_success_rate=0.000`
+- the public GitHub Actions API for `origin` currently reports `0 workflows / 0 workflow runs`, so the workflow is ready in-repo but remote execution evidence is still pending
+
+## Phase 5F Update
+
+### Phase 5F+hotfix note
+
+This hotfix specifically targets `competition_recommendation` on the `agents_sdk` path.
+
+What was fixed:
+
+- recommendation output normalization now repairs known provider drift before strict Pydantic validation
+- fuzzy `task_type` variants such as `algorithm_*_competition_recommendation` are normalized back to `competition_recommendation`
+- recommendation items can recover `competition_name` / `competition_id` from provider-shaped fields such as `id`, `name`, or nested `competition`
+- `risk_overview` objects are normalized into the canonical string list
+- unsupported extra fields are stripped before final validation
+- recommendation provider tool output is compacted to avoid `None`-shaped fields leaking into later function-call arguments
+
+Current limitation:
+
+- the recommendation chain is no longer primarily blocked by the previously known schema-drift fields
+- the main blocker in the latest real `agents_sdk` spot check is provider availability: Ark returned `403 AccountOverdueError`, which forced mock fallback
+- because of that, `completed` still must be interpreted together with `effective_runtime_mode` and `used_mock_fallback`
+
+The repo is currently at Phase 5F. The focus of this stage is not adding new product features. The focus is clarifying runtime semantics, improving Ark direct-success behavior, and making regression checks easier to trust.
+
+What changed in Phase 5F:
+
+- `runtime_mode` now has two supported values only: `mock` and `agents_sdk`
+- `live` is no longer accepted and now fails fast with a clear migration message
+- every run exposes `requested_runtime_mode`, `effective_runtime_mode`, `effective_model`, `used_mock_fallback`, and `fallback_reason`
+- `agents_sdk` evaluation is separated from mock evaluation
+- the frontend status panel distinguishes `Ark direct success` from `mock fallback`
+- the repo now includes a minimal GitHub Actions CI matrix for Windows and Ubuntu
+
+Current interpretation rules:
+
+- `completed` does not automatically mean the Ark provider succeeded directly
+- `completed` + `used_mock_fallback=true` means the provider path failed and the run was completed by mock fallback
+- `requested_runtime_mode=agents_sdk` + `effective_runtime_mode=agents_sdk` + `used_mock_fallback=false` is the direct-success case
+
+
 CompAssistant 现在不再只是一个 `competitions` 列表项目，而是一个保留原有竞赛数据能力、同时补齐最小 Agent 演示闭环的仓库。
 
 当前已经落到 Phase 5E，核心能力包括：

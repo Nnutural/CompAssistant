@@ -43,12 +43,17 @@ def build_eligibility_checker_agent_with_mode(model: str, *, structured: bool, t
         "Do not claim formal official eligibility; focus on product-level suitability and missing conditions."
     )
     if structured:
-        instructions += " Return only structured output that matches CompetitionEligibilityArtifact."
+        instructions += (
+            " Return raw JSON only, with no prose, no markdown fences, and no wrapper text. "
+            "The top-level object must match CompetitionEligibilityArtifact exactly. "
+            "Do not add any extra fields beyond task_type, competition_id, competition_name, eligibility_label, "
+            "is_eligible, missing_conditions, attention_points, rationale."
+        )
     else:
         instructions += (
             " Return only a JSON object with keys: task_type, competition_id, competition_name, eligibility_label, "
             "is_eligible, missing_conditions, attention_points, rationale. "
-            "Do not wrap the JSON in markdown fences."
+            "Do not wrap the JSON in markdown fences, and do not add prose before or after the JSON."
         )
 
     return Agent(

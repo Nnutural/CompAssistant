@@ -66,8 +66,11 @@ class SchemaAdapterTests(unittest.TestCase):
             getattr(test_tool, "_provider_schema_mode", "native"),
             {"native", "sanitized", "non_strict_sanitized"},
         )
+        schema = getattr(test_tool, "params_json_schema", {})
+        self.assertIsInstance(schema, dict)
+        self.assertNotIn("additionalProperties", str(schema))
         if changes:
-            self.assertIn("$.properties.profile.additionalProperties", changes)
+            self.assertTrue(any(change.startswith("$") for change in changes))
 
     def test_collect_agent_schema_debug_reports_sanitized_tool_schema(self) -> None:
         @provider_function_tool(name_override="test_tool")

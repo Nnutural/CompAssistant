@@ -58,6 +58,11 @@ def main() -> int:
             f"low_quality_cases={report.summary.low_quality_cases}",
             f"avg_quality={report.summary.quality.average_score:.3f}",
             f"direct_success_rate={runtime.direct_success_rate:.3f}",
+            f"structured_direct_success_rate={runtime.structured_direct_success_rate:.3f}",
+            f"json_fallback_success_rate={runtime.json_fallback_success_rate:.3f}",
+            f"mock_fallback_success_rate={runtime.mock_fallback_success_rate:.3f}",
+            f"provider_structured_success_rate={runtime.provider_structured_success_rate:.3f}",
+            f"provider_plain_json_success_rate={runtime.provider_plain_json_success_rate:.3f}",
             f"fallback_rate={runtime.fallback_rate:.3f}",
             f"hard_failure_rate={runtime.hard_failure_rate:.3f}",
             f"awaiting_review_ratio={runtime.awaiting_review_ratio:.3f}",
@@ -65,6 +70,18 @@ def main() -> int:
             f"avg_latency_ms={runtime.avg_latency_ms:.2f}",
             f"p95_latency_ms={runtime.p95_latency_ms:.2f}",
         )
+        print("Error buckets:", runtime.error_bucket_counts)
+        print(
+            "Detailed issue counts:",
+            f"structured_parse_error={runtime.structured_parse_error_count}",
+            f"json_fallback_parse_error={runtime.json_fallback_parse_error_count}",
+            f"post_normalization_validation_issue={runtime.post_normalization_validation_issue_count}",
+            f"timeout={runtime.timeout_error_count}",
+        )
+        if runtime.error_bucket_examples:
+            print("Error examples:")
+            for bucket, example in runtime.error_bucket_examples.items():
+                print(f"  - {bucket}: {example}")
         for item in report.results:
             warning_text = f" warnings={len(item.warnings)}" if item.warnings else ""
             missing_text = f" missing={','.join(item.missing_fields)}" if item.missing_fields else ""
@@ -80,12 +97,18 @@ def main() -> int:
                 f" model={item.effective_model}"
             )
             path_text = f" path={item.completion_path}"
+            provider_path_text = (
+                f" provider_path={item.provider_success_path}"
+                if item.provider_success_path is not None
+                else ""
+            )
             fallback_text = " fallback=true" if item.used_mock_fallback else ""
             latency_text = f" latency_ms={item.elapsed_ms:.2f}" if item.elapsed_ms is not None else ""
             artifact_text = f" artifact_complete={str(item.artifact_complete).lower()}"
+            bucket_text = f" error_buckets={','.join(item.error_buckets)}" if item.error_buckets else ""
             print(
                 f"- {item.id}: passed={str(item.passed).lower()} status={item.status}{path_text}"
-                f"{runtime_text}{fallback_text}{latency_text}{artifact_text}{quality_text}{warning_text}{missing_text}{quality_fail_text}"
+                f"{provider_path_text}{runtime_text}{fallback_text}{latency_text}{artifact_text}{quality_text}{warning_text}{missing_text}{quality_fail_text}{bucket_text}"
             )
     return 0 if report.summary.failed_cases == 0 else 1
 

@@ -1,6 +1,8 @@
 # Operator Guide
 
-## 启动后端
+## 启动方式
+
+后端：
 
 ```bash
 cd backend
@@ -8,23 +10,7 @@ cd backend
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-如需更稳定的演示，建议显式使用 mock runtime：
-
-```bash
-set RESEARCH_RUNTIME_MODE=mock
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-```
-
-如需验证真实 Ark 路径，请显式使用：
-
-```bash
-set RESEARCH_RUNTIME_MODE=agents_sdk
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-```
-
-不要再使用 `RESEARCH_RUNTIME_MODE=live`。该别名已废弃并会直接报错。
-
-## 启动前端
+前端：
 
 ```bash
 cd frontend
@@ -32,219 +18,84 @@ npm install
 npm run dev
 ```
 
-## 跑最小浏览器 smoke
+## 推荐的演示顺序
 
-首次安装浏览器：
+1. 先用前端 Agent 面板演示 Simple / Advanced 输入
+2. 展示 `status / events / artifacts / history`
+3. 展示 `requested_runtime_mode / effective_runtime_mode / provider_success_path / used_mock_fallback`
+4. 最后再演示 `retry / review`
+
+## 如何解释完成状态
+
+演示时不要把所有 `completed` 都说成“Ark 成功”。
+
+请按下面规则解释：
+
+- `effective_runtime_mode=agents_sdk` + `provider_success_path=structured`
+  - Ark structured 直出成功
+- `effective_runtime_mode=agents_sdk` + `provider_success_path=plain_json_fallback`
+  - Ark JSON fallback 成功，但不是 structured 直出
+- `used_mock_fallback=true`
+  - provider 失败，mock 补全完成
+
+## recommendation-003 专项复现
+
+本轮最重要的长尾 case 是 `recommendation-003`。
+
+本地复现命令：
 
 ```bash
-cd frontend
-npm run test:e2e:install
+backend\.venv\Scripts\python backend/scripts/debug_agents_sdk_case.py --case-id recommendation-003 --path both --json
 ```
 
-运行 smoke：
+看点：
+
+- structured 是否还能复现旧的 `Max turns + timeout` 组合
+- `provider_success_path` 最终是什么
+- turn 摘要里有没有重复 tool loop
+
+当前最新实测下：
+
+- `recommendation-003` 的主路径已经是 `provider_success_path=structured`
+- 如果强制跑 `--path both`，plain JSON fallback 支路仍可能单独超时；这不影响主路径已恢复
+
+## 评测命令
+
+mock 基线：
+
+```bash
+backend\.venv\Scripts\python backend/scripts/run_eval.py --runtime-mode mock
+```
+
+真实 Ark spot check：
+
+```bash
+backend\.venv\Scripts\python backend/scripts/run_eval_agents_sdk.py --sample-per-task-type 3
+```
+
+## 浏览器级验证
+
+前端最小浏览器 smoke：
 
 ```bash
 cd frontend
 npm run test:e2e
 ```
 
-当前 smoke 使用 mock runtime，覆盖：
+当前 smoke 覆盖：
 
-- 打开 Agent 面板
-- Simple Mode 填 recommendation case
-- 查看 payload 预览
-- 切换到 Advanced Mode
-- 提交任务
-- 查看状态、事件、artifacts、历史
-- 执行一次 retry
-- 验证一次 review 失败 detail 的页面展示
-- 回到 competitions 页面
+- recommendation happy path
+- review 失败 detail 展示
 
-## 跑一个最小 demo
+## CI 说明
 
-1. 打开前端页面。
-2. 点击侧栏 `智能体面板`。
-3. 保持 `简洁模式`，选择一个任务类型。
-4. 填写自然表单。
-5. 在提交前确认页面已经显示“将要提交的 objective / payload 预览”。
-6. 点击 `创建任务`。
-7. 确认页面立即显示 `run_id` 和 `排队中`。
-8. 继续观察状态、事件时间线、结果产物和最近任务列表。
+仓库内已经有最小 CI workflow：
 
-## 如何解释运行结果
+- 默认 matrix：`windows-latest` + `ubuntu-latest`
+- 默认内容：后端关键回归、前端 build、Linux Playwright smoke
+- 手动触发内容：
+  - `agents_sdk` spot check
+  - 单 case `agents_sdk` debug（默认 `recommendation-003`）
 
-推荐先看 `GET /api/agent/tasks/{run_id}` 中的以下字段：
-
-- `requested_runtime_mode`
-- `effective_runtime_mode`
-- `effective_model`
-- `used_mock_fallback`
-- `fallback_reason`
-
-解释规则：
-
-- `requested_runtime_mode=mock`：本次本来就只跑 mock
-- `requested_runtime_mode=agents_sdk` 且 `effective_runtime_mode=agents_sdk`：本次最终由 Ark 路径产出
-- `requested_runtime_mode=agents_sdk` 且 `effective_runtime_mode=mock`：本次 Ark 路径失败后降级到了 mock
-- `completed` 不能单独解释为“Ark 真实成功”，必须结合上面几个字段一起看
-
-## Simple Mode
-
-适用场景：
-
-- 面向普通演示
-- 不希望直接暴露 payload schema
-- 需要快速得到符合 contract 的输入
-
-行为说明：
-
-- Simple Mode 只负责输入适配
-- 最终仍然会生成 `objective + payload`
-- 提交前会展示预览
-- `eligibility / timeline` 的竞赛搜索会优先给出建议列表
-- 页面始终显示最终将提交的 `competition_id`
-
-## Advanced Mode
-
-适用场景：
-
-- 调试
-- 回归测试
-- 精确构造 case
-
-行为说明：
-
-- 保留原始 `objective + payload JSON` 编辑体验
-- payload 仍然是内部 canonical representation
-- 从简洁模式切换到高级模式时，会同步当前表单生成结果
-- 高级模式中的自定义 JSON 会保留，且可恢复上次草稿
-
-## 使用固定 demo fixtures
-
-固定样例位于：
-
-- `frontend/e2e/fixtures/agent-demo-cases.json`
-
-当前建议演示的 3 条 case：
-
-- `recommendation-001`
-- `eligibility-009`
-- `timeline-001`
-
-若要专门验证真实 Ark 路径，请优先使用较小样本集，并观察是否出现 fallback：
-
-```bash
-backend\.venv\Scripts\python backend/scripts/run_eval_agents_sdk.py --sample-per-task-type 3
-```
-
-每条 case 都包含：
-
-- `task_type`
-- `mode`
-- `input`
-- `expected_status`
-- `expected_observations`
-
-## 查看任务状态
-
-推荐入口：
-
-- `GET /api/agent/tasks/{run_id}`
-- `GET /api/agent/tasks/{run_id}/events`
-- `GET /api/agent/tasks/{run_id}/artifacts`
-
-查看历史：
-
-- `GET /api/agent/tasks?status=awaiting_review`
-- `GET /api/agent/tasks?task_type=competition_recommendation`
-- `GET /api/agent/tasks?limit=10&offset=0`
-
-如需核对后端实际收到的请求：
-
-1. 先读 `GET /api/agent/tasks/{run_id}` 拿到 `ledger_id`
-2. 再读 `GET /api/research-runtime/ledger/{ledger_id}`
-3. 核对其中的 `request_objective` 和 `request_payload`
-
-## Retry
-
-适用状态：
-
-- `completed`
-- `failed`
-- `cancelled`
-- `awaiting_review`
-
-接口：
-
-```bash
-curl -X POST http://127.0.0.1:8000/api/agent/tasks/{run_id}/retry
-```
-
-效果：
-
-- 创建新的 run
-- 新 run 立即进入 `queued`
-- 与原 run 的关系会写入 ledger / events / control_records
-
-## Cancel
-
-适用状态：
-
-- `queued`
-- `running`
-
-接口：
-
-```bash
-curl -X POST http://127.0.0.1:8000/api/agent/tasks/{run_id}/cancel ^
-  -H "Content-Type: application/json" ^
-  -d "{\"note\":\"操作员取消任务\"}"
-```
-
-效果：
-
-- 任务状态变为 `cancelled`
-- 轮询接口会返回取消后的终态
-- ledger / events 会记录取消动作
-
-## Review
-
-适用状态：
-
-- `awaiting_review`
-
-通过：
-
-```bash
-curl -X POST http://127.0.0.1:8000/api/agent/tasks/{run_id}/review ^
-  -H "Content-Type: application/json" ^
-  -d "{\"decision\":\"accept\",\"note\":\"人工审核通过\"}"
-```
-
-驳回：
-
-```bash
-curl -X POST http://127.0.0.1:8000/api/agent/tasks/{run_id}/review ^
-  -H "Content-Type: application/json" ^
-  -d "{\"decision\":\"reject\",\"note\":\"人工审核驳回\"}"
-```
-
-备注：
-
-```bash
-curl -X POST http://127.0.0.1:8000/api/agent/tasks/{run_id}/review ^
-  -H "Content-Type: application/json" ^
-  -d "{\"decision\":\"annotate\",\"note\":\"请导师进一步确认\"}"
-```
-
-效果：
-
-- `accept`：任务转为 `completed`
-- `reject`：任务转为 `failed`
-- `annotate`：任务保持 `awaiting_review`，但会写入审核备注和事件
-
-## 当前已知边界
-
-- `cancel` 仍是协作式取消，不是强制终止 provider 调用
-- `attachments` 只会记录到 `payload.attachments`，不会被 runtime 消费
-- `queued / running` 任务不支持跨进程恢复
+如果要远端验证 recommendation 长尾 case，请优先使用 workflow_dispatch 的单 case debug job，而不是每次都跑全量真实评测。
+当前公开 GitHub API 对 `origin` 还没有返回任何 workflow run 记录，因此“远端 CI 已配置”不等于“远端已经产生 green 证据”。

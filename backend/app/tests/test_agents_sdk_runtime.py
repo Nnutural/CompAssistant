@@ -17,7 +17,15 @@ from app.agents.evidence_scout import EvidenceScoutOutput  # noqa: E402
 from app.agents.manager import ManagerAgentOutput  # noqa: E402
 from app.agents.sdk_runtime import AgentsSDKResearchRuntime  # noqa: E402
 from app.agents.trend_scout import TrendScoutOutput  # noqa: E402
-from app.schemas.research_runtime import AgentTaskEnvelope, EvidenceRecord, FindingItem, ResearchLedger, SourceRecord  # noqa: E402
+from app.schemas.research_runtime import (  # noqa: E402
+    AgentTaskEnvelope,
+    CompetitionEligibilityArtifact,
+    EvidenceRecord,
+    FindingItem,
+    ResearchLedger,
+    ResearchScope,
+    SourceRecord,
+)
 
 
 class _FakeRunResult:
@@ -153,6 +161,7 @@ class AgentsSDKResearchRuntimeTests(unittest.TestCase):
             api_key='test-key',
             base_url='https://ark.cn-beijing.volces.com/api/v3',
             timeout=45.0,
+            max_retries=0,
         )
         set_client_mock.assert_called_once_with(async_client_cls.return_value, use_for_tracing=False)
 
@@ -279,6 +288,7 @@ class AgentsSDKResearchRuntimeTests(unittest.TestCase):
             api_key='test-key',
             base_url='https://ark.cn-beijing.volces.com/api/v3',
             timeout=45.0,
+            max_retries=0,
         )
         set_client_mock.assert_called_once_with(async_client_cls.return_value, use_for_tracing=False)
 
@@ -312,8 +322,91 @@ class AgentsSDKResearchRuntimeTests(unittest.TestCase):
             api_key='test-key',
             base_url='https://ark.cn-beijing.volces.com/api/v3',
             timeout=45.0,
+            max_retries=0,
         )
         set_client_mock.assert_called_once_with(async_client_cls.return_value, use_for_tracing=False)
+
+    @patch.object(AgentsSDKResearchRuntime, '_configure_sdk')
+    @patch('app.agents.sdk_runtime.ResearchAgentFactory')
+    def test_competition_tasks_skip_provider_manager_and_use_local_summary(
+        self,
+        factory_cls,
+        configure_sdk_mock,
+    ) -> None:
+        task = AgentTaskEnvelope(
+            contract_version='1.0',
+            task_id='run-eligibility-001',
+            session_id='session-eligibility-001',
+            task_type='competition_eligibility_check',
+            requested_by='user',
+            priority='normal',
+            objective='Check whether the current student profile fits the target competition.',
+            payload={
+                'competition_id': 10,
+                'profile': {
+                    'grade': 'sophomore',
+                    'ability_tags': ['electronics', 'embedded'],
+                },
+            },
+            constraints=[],
+            dry_run=False,
+        )
+        ledger = ResearchLedger(
+            contract_version='1.0',
+            ledger_id='ledger-session-eligibility-001',
+            session_id=task.session_id,
+            topic='competition_eligibility_check',
+            research_question=task.objective,
+            status='active',
+            scope=ResearchScope(),
+            task_history=[],
+            source_registry=[],
+            evidence_log=[],
+            created_at=self.ledger.created_at,
+            updated_at=self.ledger.updated_at,
+            requested_runtime_mode='agents_sdk',
+            effective_runtime_mode='agents_sdk',
+            effective_model='deepseek-v3-2-251201',
+        )
+
+        validated_output = CompetitionEligibilityArtifact(
+            task_type='competition_eligibility_check',
+            competition_id=10,
+            competition_name='National Undergraduate Electronics Design Contest',
+            eligibility_label='recommended',
+            is_eligible=True,
+            missing_conditions=[],
+            attention_points=['Confirm the team track before registration.'],
+            rationale=['Current profile matches the baseline competition rules.'],
+        )
+
+        factory = factory_cls.return_value
+
+        def populate_specialist_output(context):
+            context.specialist_outputs['eligibility-checker'] = validated_output
+            return {
+                'flow': 'competition_eligibility_check',
+                'specialist_name': 'eligibility-checker',
+                'specialist_output': validated_output.model_dump(mode='json'),
+            }
+
+        factory.ensure_specialist_outputs.side_effect = populate_specialist_output
+        factory.build_runtime_metadata.return_value = {
+            'mode': 'agents_sdk',
+            'requested_runtime_mode': 'agents_sdk',
+            'effective_runtime_mode': 'agents_sdk',
+            'model': 'deepseek-v3-2-251201',
+            'effective_model': 'deepseek-v3-2-251201',
+            'used_mock_fallback': False,
+        }
+
+        result, updated_ledger = self.runtime.run(task, ledger)
+
+        self.assertEqual(result.status, 'completed')
+        self.assertEqual(updated_ledger.result_summary, 'National Undergraduate Electronics Design Contest eligibility result: recommended.')
+        factory.run_manager.assert_not_called()
+        factory.ensure_specialist_outputs.assert_called_once()
+        configure_sdk_mock.assert_called_once()
 
     @unittest.skipUnless(
         bool(os.getenv('OPENAI_API_KEY')) and os.getenv('RUN_ARK_INTEGRATION') == '1',

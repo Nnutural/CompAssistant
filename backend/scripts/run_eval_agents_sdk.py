@@ -42,16 +42,36 @@ def main() -> int:
             f"avg_quality={report.summary.quality.average_score:.3f}"
         )
         print(
-            f"direct_success_rate={runtime.direct_success_rate:.3f} fallback_rate={runtime.fallback_rate:.3f} "
+            f"direct_success_rate={runtime.direct_success_rate:.3f} "
+            f"structured_direct_success_rate={runtime.structured_direct_success_rate:.3f} "
+            f"json_fallback_success_rate={runtime.json_fallback_success_rate:.3f} "
+            f"mock_fallback_success_rate={runtime.mock_fallback_success_rate:.3f} "
+            f"fallback_rate={runtime.fallback_rate:.3f} "
+            f"provider_structured_success_rate={runtime.provider_structured_success_rate:.3f} "
+            f"provider_plain_json_success_rate={runtime.provider_plain_json_success_rate:.3f} "
             f"hard_failure_rate={runtime.hard_failure_rate:.3f} awaiting_review_ratio={runtime.awaiting_review_ratio:.3f} "
             f"artifact_completeness_ratio={runtime.artifact_completeness_ratio:.3f} "
             f"avg_latency_ms={runtime.avg_latency_ms:.2f} p95_latency_ms={runtime.p95_latency_ms:.2f}"
         )
+        print(f"error_bucket_counts={runtime.error_bucket_counts}")
+        print(
+            "detailed_issue_counts="
+            f"structured_parse_error={runtime.structured_parse_error_count} "
+            f"json_fallback_parse_error={runtime.json_fallback_parse_error_count} "
+            f"post_normalization_validation_issue={runtime.post_normalization_validation_issue_count} "
+            f"timeout={runtime.timeout_error_count}"
+        )
+        if runtime.error_bucket_examples:
+            print("error_bucket_examples:")
+            for bucket, example in runtime.error_bucket_examples.items():
+                print(f"  - {bucket}: {example}")
         for item in report.results:
             print(
                 f"- {item.id}: status={item.status} path={item.completion_path} "
+                f"provider_path={item.provider_success_path} "
                 f"effective={item.effective_runtime_mode} fallback={str(item.used_mock_fallback).lower()} "
-                f"latency_ms={(item.elapsed_ms or 0.0):.2f} quality={item.quality_score:.3f}/{item.quality_threshold:.3f}"
+                f"latency_ms={(item.elapsed_ms or 0.0):.2f} quality={item.quality_score:.3f}/{item.quality_threshold:.3f} "
+                f"error_buckets={','.join(item.error_buckets)}"
             )
     return 0 if report.summary.failed_cases == 0 else 1
 

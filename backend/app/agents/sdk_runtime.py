@@ -33,6 +33,11 @@ except ImportError:
 
 
 logger = logging.getLogger("uvicorn.error")
+COMPETITION_TASK_TYPES = {
+    "competition_recommendation",
+    "competition_eligibility_check",
+    "competition_timeline_plan",
+}
 
 
 class AgentsSDKResearchRuntime:
@@ -102,8 +107,9 @@ class AgentsSDKResearchRuntime:
             tracing_enabled=self.tracing_enabled,
             base_url=self.openai_base_url,
             schema_debug_enabled=self.schema_debug_enabled,
+            provider_timeout_seconds=self.provider_timeout_seconds,
         )
-        context.session_ids["manager"] = f"{task.session_id}-manager"
+        context.session_ids["manager"] = f"{task.session_id}-{context.runtime_invocation_id}-manager"
         if manager_trace_id:
             context.trace_ids["manager"] = manager_trace_id
 
@@ -124,30 +130,48 @@ class AgentsSDKResearchRuntime:
         _emit_checkpoint(ledger, checkpoint_callback)
         _abort_if_requested(ledger, abort_if_requested)
 
-        manager_started_at = perf_counter()
-        logger.info(
-            "[research-runtime] agents_sdk manager step start task_id=%s session_id=%s",
-            task.task_id,
-            context.session_ids["manager"],
-        )
-        manager_output = factory.run_manager(context, self._build_manager_input(task, ledger))
-        logger.info(
-            "[research-runtime] agents_sdk manager step completed task_id=%s summary_chars=%s blockers=%s follow_up_items=%s elapsed_ms=%.2f",
-            task.task_id,
-            len(manager_output.summary),
-            len(manager_output.blockers),
-            len(manager_output.follow_up_items),
-            (perf_counter() - manager_started_at) * 1000,
-        )
+        if task.task_type in COMPETITION_TASK_TYPES:
+            specialists_started_at = perf_counter()
+            pipeline = factory.ensure_specialist_outputs(context)
+            logger.info(
+                "[research-runtime] agents_sdk specialist-first pipeline completed task_id=%s flow=%s elapsed_ms=%.2f",
+                task.task_id,
+                pipeline.get("flow"),
+                (perf_counter() - specialists_started_at) * 1000,
+            )
+            manager_output = self._build_local_manager_output(task, context, pipeline)
+            logger.info(
+                "[research-runtime] agents_sdk local manager summary prepared task_id=%s summary_chars=%s blockers=%s follow_up_items=%s",
+                task.task_id,
+                len(manager_output.summary),
+                len(manager_output.blockers),
+                len(manager_output.follow_up_items),
+            )
+        else:
+            manager_started_at = perf_counter()
+            logger.info(
+                "[research-runtime] agents_sdk manager step start task_id=%s session_id=%s",
+                task.task_id,
+                context.session_ids["manager"],
+            )
+            manager_output = factory.run_manager(context, self._build_manager_input(task, ledger))
+            logger.info(
+                "[research-runtime] agents_sdk manager step completed task_id=%s summary_chars=%s blockers=%s follow_up_items=%s elapsed_ms=%.2f",
+                task.task_id,
+                len(manager_output.summary),
+                len(manager_output.blockers),
+                len(manager_output.follow_up_items),
+                (perf_counter() - manager_started_at) * 1000,
+            )
 
-        specialists_started_at = perf_counter()
-        pipeline = factory.ensure_specialist_outputs(context)
-        logger.info(
-            "[research-runtime] agents_sdk specialist pipeline completed task_id=%s flow=%s elapsed_ms=%.2f",
-            task.task_id,
-            pipeline.get("flow"),
-            (perf_counter() - specialists_started_at) * 1000,
-        )
+            specialists_started_at = perf_counter()
+            pipeline = factory.ensure_specialist_outputs(context)
+            logger.info(
+                "[research-runtime] agents_sdk specialist pipeline completed task_id=%s flow=%s elapsed_ms=%.2f",
+                task.task_id,
+                pipeline.get("flow"),
+                (perf_counter() - specialists_started_at) * 1000,
+            )
         _abort_if_requested(ledger, abort_if_requested)
         transition_state(
             ledger,
@@ -165,11 +189,7 @@ class AgentsSDKResearchRuntime:
             effective_runtime_mode="agents_sdk",
             effective_model=self.model,
         )
-        if task.task_type in {
-            "competition_recommendation",
-            "competition_eligibility_check",
-            "competition_timeline_plan",
-        }:
+        if task.task_type in COMPETITION_TASK_TYPES:
             specialist_name = str(pipeline["specialist_name"])
             validated_output = context.specialist_outputs[specialist_name]
             record_output(
@@ -244,6 +264,7 @@ class AgentsSDKResearchRuntime:
             api_key=self.openai_api_key,
             base_url=self.openai_base_url,
             timeout=self.provider_timeout_seconds,
+            max_retries=0,
         )
         set_default_openai_client(custom_client, use_for_tracing=False)
         set_default_openai_api("chat_completions")
@@ -264,6 +285,34 @@ class AgentsSDKResearchRuntime:
             "expected_output": task.expected_output.model_dump(mode="json") if task.expected_output else None,
         }
         return json.dumps(payload, ensure_ascii=False)
+
+    def _build_local_manager_output(
+        self,
+        task: AgentTaskEnvelope,
+        context: ResearchAgentContext,
+        pipeline: dict[str, Any],
+    ) -> ManagerAgentOutput:
+        specialist_name = str(pipeline["specialist_name"])
+        specialist_output = context.specialist_outputs[specialist_name]
+        if task.task_type == "competition_recommendation":
+            recommendation_count = len(getattr(specialist_output, "recommendations", []) or [])
+            summary = f"Prepared {recommendation_count} grounded competition recommendations."
+        elif task.task_type == "competition_eligibility_check":
+            summary = (
+                f"Prepared an eligibility assessment for "
+                f"{getattr(specialist_output, 'competition_name', 'the target competition')}."
+            )
+        elif task.task_type == "competition_timeline_plan":
+            milestone_count = len(getattr(specialist_output, "milestones", []) or [])
+            summary = f"Prepared a reverse timeline with {milestone_count} milestones."
+        else:
+            summary = f"Prepared {task.task_type} specialist output."
+
+        follow_up_items: list[str] = []
+        review_message = context.review_flags.get(specialist_name)
+        if review_message:
+            follow_up_items.append(review_message)
+        return ManagerAgentOutput(summary=summary, follow_up_items=follow_up_items, blockers=[])
 
 
 def _emit_checkpoint(

@@ -56,16 +56,34 @@ def build_competition_recommender_agent_with_mode(model: str, *, structured: boo
 
     instructions = (
         "You are CompetitionRecommender, a specialist for university competition recommendation. "
-        "Use the local competition filtering and rationale tools as grounding. "
+        "Use the local competition filtering tool as grounding. "
         "Keep the output short, practical, and product-oriented. "
         "Do not invent competitions or external data."
     )
     if structured:
-        instructions += " Return only structured output that matches CompetitionRecommendationArtifact."
+        instructions += (
+            " Return raw JSON only, with no prose, no markdown fences, and no wrapper text. "
+            "Call filter_competitions_by_profile exactly once, select at most the top 3 matches, and stop. "
+            "The tool already returns canonical recommendation fields plus reasons and risk notes. "
+            "Copy those fields directly instead of renaming, nesting, or expanding them. "
+            "The top-level object must match CompetitionRecommendationArtifact exactly. "
+            "The top-level task_type must be exactly competition_recommendation. "
+            "The top-level profile_summary is required and must be a short one-line summary of direction, grade, and ability profile. "
+            "The top-level risk_overview must be an array of strings, never an object. "
+            "Do not echo task_id, session_id, ledger_id, objective, profile, or any other input wrapper fields. "
+            "Each recommendation item must contain only competition_id, competition_name, match_score, reasons, risk_notes, focus_tags. "
+            "Build risk_overview by deduplicating the selected recommendation risk_notes. "
+            "Do not nest a competition object and do not add extra fields such as score, difficulty, deadline, match_summary, recommendation_level, achievable_ideas, preparation_plan, or timeline_advice."
+        )
     else:
         instructions += (
             " Return only a JSON object with keys: task_type, profile_summary, recommendations, risk_overview. "
-            "Do not wrap the JSON in markdown fences."
+            "Call filter_competitions_by_profile exactly once, select at most the top 3 matches, and stop. "
+            "The tool already returns canonical recommendation fields plus reasons and risk notes. "
+            "Do not wrap the JSON in markdown fences, and do not add prose before or after the JSON. "
+            "The task_type must be exactly competition_recommendation, profile_summary is required, and risk_overview must be a JSON array of strings. "
+            "Do not echo task_id, session_id, ledger_id, objective, or profile at the top level. "
+            "Each recommendation item must contain only competition_id, competition_name, match_score, reasons, risk_notes, focus_tags."
         )
 
     return Agent(

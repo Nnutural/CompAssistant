@@ -1,0 +1,145 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      agents_sdk_case_id:
+        description: Single agents_sdk case id for manual debug reproduction.
+        required: false
+        default: recommendation-003
+
+jobs:
+  build-and-test:
+    name: Build and Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install backend dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -r backend/requirements.txt
+
+      - name: Run backend regression tests
+        run: >
+          python -m unittest
+          backend.app.tests.test_agent_task_routes
+          backend.app.tests.test_agent_task_history_routes
+          backend.app.tests.test_agent_task_control_routes
+          backend.app.tests.test_competitions_routes
+          backend.app.tests.test_output_repair
+          backend.app.tests.test_runtime_tools
+          backend.app.tests.test_schema_adapter
+          backend.app.tests.test_agent_factory
+          backend.app.tests.test_agents_sdk_runtime
+
+      - name: Install frontend dependencies
+        run: npm ci --prefix frontend
+
+      - name: Build frontend
+        run: npm --prefix frontend run build
+
+      - name: Install Playwright browser
+        if: runner.os == 'Linux'
+        run: |
+          cd frontend
+          npx playwright install --with-deps chromium
+
+      - name: Run Playwright smoke
+        if: runner.os == 'Linux'
+        run: npm --prefix frontend run test:e2e
+
+      - name: Upload Playwright artifacts
+        if: runner.os == 'Linux' && always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-artifacts-${{ matrix.os }}
+          path: |
+            frontend/playwright-report
+            frontend/test-results
+          if-no-files-found: ignore
+
+  agents-sdk-spotcheck:
+    name: Agents SDK Spot Check
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      OPENAI_BASE_URL: ${{ vars.OPENAI_BASE_URL }}
+      OPENAI_DEFAULT_MODEL: ${{ vars.OPENAI_DEFAULT_MODEL }}
+      RESEARCH_RUNTIME_MODE: agents_sdk
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install backend dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -r backend/requirements.txt
+
+      - name: Run agents_sdk evaluation spot check
+        if: env.OPENAI_API_KEY != ''
+        run: python backend/scripts/run_eval_agents_sdk.py --sample-per-task-type 3
+
+      - name: Skip message when OPENAI_API_KEY is missing
+        if: env.OPENAI_API_KEY == ''
+        run: echo "Skipping agents_sdk spot check because OPENAI_API_KEY is not configured."
+
+  agents-sdk-case-debug:
+    name: Agents SDK Case Debug
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      OPENAI_BASE_URL: ${{ vars.OPENAI_BASE_URL }}
+      OPENAI_DEFAULT_MODEL: ${{ vars.OPENAI_DEFAULT_MODEL }}
+      RESEARCH_RUNTIME_MODE: agents_sdk
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install backend dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -r backend/requirements.txt
+
+      - name: Run single-case agents_sdk debug
+        if: env.OPENAI_API_KEY != ''
+        run: >
+          python backend/scripts/debug_agents_sdk_case.py
+          --case-id "${{ inputs.agents_sdk_case_id }}"
+          --path both
+          --json
+
+      - name: Skip message when OPENAI_API_KEY is missing
+        if: env.OPENAI_API_KEY == ''
+        run: echo "Skipping agents_sdk case debug because OPENAI_API_KEY is not configured."

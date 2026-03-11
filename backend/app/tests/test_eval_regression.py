@@ -34,12 +34,34 @@ class EvaluationRegressionTests(unittest.TestCase):
         self.assertLessEqual(report.summary.low_quality_cases, 2)
         self.assertEqual(report.summary.runtime.requested_runtime_mode, "mock")
         self.assertEqual(report.summary.runtime.direct_success_rate, 0.0)
+        self.assertEqual(report.summary.runtime.structured_direct_success_rate, 0.0)
+        self.assertEqual(report.summary.runtime.json_fallback_success_rate, 0.0)
+        self.assertEqual(report.summary.runtime.mock_fallback_success_rate, 0.0)
+        self.assertEqual(report.summary.runtime.provider_structured_success_rate, 0.0)
+        self.assertEqual(report.summary.runtime.provider_plain_json_success_rate, 0.0)
         self.assertEqual(report.summary.runtime.fallback_rate, 0.0)
         self.assertEqual(report.summary.runtime.hard_failure_rate, 0.0)
         self.assertGreater(report.summary.runtime.artifact_completeness_ratio, 0.9)
+        self.assertEqual(report.summary.runtime.structured_parse_error_count, 0)
+        self.assertEqual(report.summary.runtime.json_fallback_parse_error_count, 0)
+        self.assertEqual(report.summary.runtime.post_normalization_validation_issue_count, 0)
+        self.assertEqual(report.summary.runtime.timeout_error_count, 0)
+        self.assertEqual(
+            report.summary.runtime.error_bucket_counts,
+            {
+                "schema_compatibility_error": 0,
+                "provider_exception": 0,
+                "parse_error": 0,
+                "validation_error": 0,
+                "fallback_to_mock": 0,
+                "hard_failed": 0,
+            },
+        )
+        self.assertEqual(report.summary.runtime.error_bucket_examples, {})
         self.assertTrue(all(result.passed for result in report.results))
         self.assertTrue(all(result.quality_score >= result.quality_threshold for result in report.results))
         self.assertTrue(all(result.completion_path in {"mock", "awaiting_review"} for result in report.results))
+        self.assertTrue(all(result.provider_success_path is None for result in report.results))
 
 
 if __name__ == "__main__":

@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+from uuid import uuid4
 
 from app.agents.schema_adapter import provider_function_tool
 from app.schemas.research_runtime import AgentTaskEnvelope, EvidenceRecord, FindingItem, ResearchLedger, SourceRecord
@@ -31,6 +32,7 @@ class ResearchAgentContext:
     session_db_path: str
     tracing_enabled: bool
     trace_group_id: str
+    runtime_invocation_id: str = field(default_factory=lambda: uuid4().hex[:10])
     manager_trace_id: str | None = None
     specialist_outputs: dict[str, Any] = field(default_factory=dict)
     review_flags: dict[str, str] = field(default_factory=dict)
@@ -220,29 +222,22 @@ def build_critic_tools() -> list[Any]:
 def build_recommendation_tools() -> list[Any]:
     @provider_function_tool(
         name_override='filter_competitions_by_profile',
-        description_override='Return locally filtered competitions and score breakdowns for the provided profile.',
+        description_override=(
+            'Return locally ranked recommendation candidates for the provided profile. '
+            'Each match already contains canonical recommendation fields plus concise reasons and risk notes.'
+        ),
     )
     def filter_competitions_by_profile_tool(
         ctx: RunContextWrapper[ResearchAgentContext],
         profile: dict[str, Any],
     ) -> dict[str, Any]:
-        return unwrap_tool_result(filter_competitions_by_profile(profile), 'filter_competitions_by_profile')
+        result = unwrap_tool_result(filter_competitions_by_profile(profile), 'filter_competitions_by_profile')
+        simplified_matches: list[dict[str, Any]] = []
+        for item in result.get("matches", [])[:5]:
+            simplified_matches.append(_build_provider_recommendation_match(item))
+        return {"matches": simplified_matches}
 
-    @provider_function_tool(
-        name_override='compose_recommendation_rationale',
-        description_override='Compose short recommendation reasons and risk notes from a competition and score result.',
-    )
-    def compose_recommendation_rationale_tool(
-        ctx: RunContextWrapper[ResearchAgentContext],
-        competition: dict[str, Any],
-        scoring: dict[str, Any],
-    ) -> dict[str, Any]:
-        return unwrap_tool_result(
-            compose_recommendation_rationale(competition, scoring),
-            'compose_recommendation_rationale',
-        )
-
-    return [filter_competitions_by_profile_tool, compose_recommendation_rationale_tool]
+    return [filter_competitions_by_profile_tool]
 
 
 def build_eligibility_tools() -> list[Any]:
@@ -298,3 +293,48 @@ def build_timeline_tools() -> list[Any]:
         return unwrap_tool_result(score_competition_match(competition, profile), 'score_competition_match')
 
     return [build_timeline_template_tool, score_competition_match_tool]
+
+
+def _build_provider_recommendation_match(item: dict[str, Any]) -> dict[str, Any]:
+    competition = item.get("competition", {})
+    scoring = item.get("score_breakdown", {})
+    rationale = unwrap_tool_result(
+        compose_recommendation_rationale(competition, scoring),
+        'compose_recommendation_rationale',
+    )
+    return _compact_provider_payload(
+        {
+            "competition_id": competition.get("id"),
+            "competition_name": competition.get("name"),
+            "match_score": scoring.get("total_score"),
+            "reasons": rationale.get("reasons", []),
+            "risk_notes": rationale.get("risk_notes", []),
+            "focus_tags": competition.get("enriched", {}).get("focus_tags", [])[:4],
+            "match_context": {
+                "field": competition.get("field"),
+                "difficulty": competition.get("difficulty"),
+                "level": competition.get("level"),
+                "deadline": competition.get("deadline"),
+                "difficulty_gap": scoring.get("difficulty_gap"),
+                "component_scores": scoring.get("component_scores", {}),
+            },
+        }
+    )
+
+
+def _compact_provider_payload(value: Any) -> Any:
+    if isinstance(value, dict):
+        compacted: dict[str, Any] = {}
+        for key, item in value.items():
+            normalized = _compact_provider_payload(item)
+            if normalized is None:
+                continue
+            if isinstance(normalized, str) and not normalized.strip():
+                continue
+            if isinstance(normalized, dict) and not normalized:
+                continue
+            compacted[key] = normalized
+        return compacted
+    if isinstance(value, list):
+        return [_compact_provider_payload(item) for item in value]
+    return value

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 import logging
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
+from dataclasses import dataclass
 from time import perf_counter
 from typing import Any, Callable, TypeVar
 
@@ -53,6 +55,12 @@ TStructuredOutput = TypeVar("TStructuredOutput", bound=BaseModel)
 logger = logging.getLogger("uvicorn.error")
 
 
+@dataclass(frozen=True)
+class ProviderRunBudget:
+    max_turns: int
+    timeout_seconds: float
+
+
 class ResearchAgentFactory:
     def __init__(
         self,
@@ -62,6 +70,7 @@ class ResearchAgentFactory:
         tracing_enabled: bool,
         base_url: str | None = None,
         schema_debug_enabled: bool = False,
+        provider_timeout_seconds: float = 45.0,
     ):
         if not AGENTS_SDK_AVAILABLE:
             raise RuntimeError("openai-agents is not installed")
@@ -70,6 +79,16 @@ class ResearchAgentFactory:
         self.tracing_enabled = tracing_enabled
         self.base_url = base_url or ""
         self.schema_debug_enabled = schema_debug_enabled
+        self.provider_timeout_seconds = provider_timeout_seconds
+
+    def get_run_budget(self, *, agent_name: str, path_label: str) -> ProviderRunBudget:
+        max_turns = 10
+        if agent_name == "competition-recommender":
+            if path_label == "structured":
+                max_turns = 6
+            elif path_label == "plain_json_fallback":
+                max_turns = 4
+        return ProviderRunBudget(max_turns=max_turns, timeout_seconds=self.provider_timeout_seconds)
 
     def build_manager_agent(self, *, structured: bool = True):
         instructions = (
@@ -409,10 +428,12 @@ class ResearchAgentFactory:
                 agent=structured_agent,
                 context=context,
                 input_payload=input_payload,
+                stage_name=stage_name,
+                path_label="structured",
             )
             output, review_required, review_message = process_output_stage(
                 ledger=context.ledger,
-                stage=stage_name,
+                stage=f"{stage_name}:structured",
                 raw_output=raw_output,
                 output_model=output_model,
                 agent_name=agent_name,
@@ -428,6 +449,12 @@ class ResearchAgentFactory:
                 (perf_counter() - started_at) * 1000,
                 self._summarize_output(output),
             )
+            record_output(
+                context.ledger,
+                stage=f"{stage_name}:provider_path",
+                payload={"path": "structured"},
+                repaired=True,
+            )
             return output
         except Exception as structured_error:
             self._record_runtime_exception(
@@ -437,6 +464,29 @@ class ResearchAgentFactory:
                 exc=structured_error,
                 path_label="structured",
             )
+            recovered_output = self._recover_output_from_exception_message(
+                stage_name=stage_name,
+                agent_name=agent_name,
+                context=context,
+                output_model=output_model,
+                exception=structured_error,
+                path_label="structured",
+            )
+            if recovered_output is not None:
+                logger.info(
+                    "[research-runtime] %s recovered structured output from exception payload task_id=%s elapsed_ms=%.2f summary=%s",
+                    agent_name,
+                    context.task.task_id,
+                    (perf_counter() - started_at) * 1000,
+                    self._summarize_output(recovered_output),
+                )
+                record_output(
+                    context.ledger,
+                    stage=f"{stage_name}:provider_path",
+                    payload={"path": "structured"},
+                    repaired=True,
+                )
+                return recovered_output
             logger.warning(
                 "[research-runtime] %s structured run failed task_id=%s error=%s; trying plain JSON fallback",
                 agent_name,
@@ -455,10 +505,12 @@ class ResearchAgentFactory:
                     agent=plain_json_agent,
                     context=context,
                     input_payload=input_payload,
+                    stage_name=stage_name,
+                    path_label="plain_json_fallback",
                 )
                 output, review_required, review_message = process_output_stage(
                     ledger=context.ledger,
-                    stage=stage_name,
+                    stage=f"{stage_name}:plain_json_fallback",
                     raw_output=raw_output,
                     output_model=output_model,
                     agent_name=agent_name,
@@ -473,6 +525,12 @@ class ResearchAgentFactory:
                     context.task.task_id,
                     (perf_counter() - started_at) * 1000,
                     self._summarize_output(output),
+                )
+                record_output(
+                    context.ledger,
+                    stage=f"{stage_name}:provider_path",
+                    payload={"path": "plain_json_fallback"},
+                    repaired=True,
                 )
                 return output
             except Exception as fallback_error:
@@ -494,6 +552,37 @@ class ResearchAgentFactory:
                     f"{agent_name} failed in structured mode and JSON fallback mode. "
                     f"structured_error={structured_error}; fallback_error={fallback_error}"
                 ) from fallback_error
+
+    def _recover_output_from_exception_message(
+        self,
+        *,
+        stage_name: str,
+        agent_name: str,
+        context: ResearchAgentContext,
+        output_model: type[TStructuredOutput],
+        exception: Exception,
+        path_label: str,
+    ) -> TStructuredOutput | None:
+        if _classify_runtime_exception(exception) != "provider_response_parse_error":
+            return None
+        candidate = _extract_json_candidate_from_exception_message(str(exception))
+        if not candidate:
+            return None
+        try:
+            output, review_required, review_message = process_output_stage(
+                ledger=context.ledger,
+                stage=f"{stage_name}:{path_label}",
+                raw_output=candidate,
+                output_model=output_model,
+                agent_name=agent_name,
+            )
+        except Exception:
+            return None
+        if review_required and review_message:
+            context.review_flags[stage_name] = review_message
+        else:
+            context.review_flags.pop(stage_name, None)
+        return output
 
     def _record_agent_schema(self, *, ledger, stage: str, agent: Any) -> None:
         if not self.schema_debug_enabled:
@@ -522,7 +611,7 @@ class ResearchAgentFactory:
         kind = _classify_runtime_exception(exc)
         record_issue(
             ledger,
-            stage=stage,
+            stage=f"{stage}:{path_label}",
             kind=kind,
             message=f"{agent_name} {path_label} failed: {exc}",
             agent=agent_name,
@@ -536,29 +625,70 @@ class ResearchAgentFactory:
         agent,
         context: ResearchAgentContext,
         input_payload: str,
+        stage_name: str,
+        path_label: str,
     ) -> Any:
         session_id = self._get_or_create_session_id(context, agent_name)
         trace_id = self._get_or_create_trace_id(context, agent_name)
         started_at = perf_counter()
+        budget = self.get_run_budget(agent_name=agent_name, path_label=path_label)
         logger.info(
-            "[research-runtime] %s runner call start task_id=%s session_id=%s tracing=%s trace_id=%s",
+            "[research-runtime] %s runner call start task_id=%s session_id=%s tracing=%s trace_id=%s path=%s max_turns=%s timeout=%s",
             agent_name,
             context.task.task_id,
             session_id,
             self.tracing_enabled,
             trace_id,
+            path_label,
+            budget.max_turns,
+            budget.timeout_seconds,
         )
-        result = Runner.run_sync(
-            agent,
-            input=input_payload,
-            context=context,
-            session=self.create_session(session_id),
-            run_config=self.create_run_config(
-                workflow_name=f"Research Runtime / {agent_name}",
-                trace_id=trace_id,
-                group_id=context.trace_group_id,
-            ),
-        )
+        if self.schema_debug_enabled:
+            record_output(
+                context.ledger,
+                stage=f"{stage_name}:{path_label}:budget",
+                payload={
+                    "agent_name": agent_name,
+                    "path_label": path_label,
+                    "max_turns": budget.max_turns,
+                    "timeout_seconds": budget.timeout_seconds,
+                    "input_chars": len(input_payload),
+                },
+                repaired=False,
+            )
+
+        def _invoke_runner():
+            return Runner.run_sync(
+                agent,
+                input=input_payload,
+                context=context,
+                max_turns=budget.max_turns,
+                session=self.create_session(session_id),
+                run_config=self.create_run_config(
+                    workflow_name=f"Research Runtime / {agent_name}",
+                    trace_id=trace_id,
+                    group_id=context.trace_group_id,
+                ),
+            )
+
+        if budget.timeout_seconds > 0:
+            executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix=f"{agent_name}-runner")
+            future = executor.submit(_invoke_runner)
+            try:
+                result = future.result(timeout=budget.timeout_seconds)
+            except FutureTimeoutError as exc:
+                future.cancel()
+                executor.shutdown(wait=False, cancel_futures=True)
+                raise TimeoutError(
+                    f"Runner call timed out after {budget.timeout_seconds:.1f}s"
+                ) from exc
+            except Exception:
+                executor.shutdown(wait=False, cancel_futures=True)
+                raise
+            else:
+                executor.shutdown(wait=False, cancel_futures=True)
+        else:
+            result = _invoke_runner()
         logger.info(
             "[research-runtime] %s runner call completed task_id=%s session_id=%s elapsed_ms=%.2f final_output_type=%s",
             agent_name,
@@ -659,7 +789,7 @@ class ResearchAgentFactory:
 
     def _get_or_create_session_id(self, context: ResearchAgentContext, agent_name: str) -> str:
         if agent_name not in context.session_ids:
-            context.session_ids[agent_name] = f"{context.task.session_id}-{agent_name}"
+            context.session_ids[agent_name] = f"{context.task.session_id}-{context.runtime_invocation_id}-{agent_name}"
         return context.session_ids[agent_name]
 
     def _get_or_create_trace_id(self, context: ResearchAgentContext, agent_name: str) -> str | None:
@@ -676,6 +806,23 @@ def _classify_runtime_exception(exc: Exception) -> str:
         return "schema_compatibility_error"
     if "invalid json when parsing" in message or "json_invalid" in message:
         return "provider_response_parse_error"
-    if any(token in message for token in ("timeout", "timed out", "rate limit", "429", "500", "server error")):
+    if any(
+        token in message
+        for token in ("max turns", "timeout", "timed out", "rate limit", "429", "500", "server error", "connection error")
+    ):
         return "provider_exception"
     return "runtime_error"
+
+
+def _extract_json_candidate_from_exception_message(message: str) -> str | None:
+    decoder = json.JSONDecoder()
+    for index, char in enumerate(message):
+        if char != "{":
+            continue
+        try:
+            payload, end_index = decoder.raw_decode(message[index:])
+        except json.JSONDecodeError:
+            continue
+        if isinstance(payload, dict):
+            return message[index : index + end_index]
+    return None

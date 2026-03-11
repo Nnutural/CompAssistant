@@ -16,6 +16,7 @@ from app.schemas.evaluation import (
     EvaluationRuntimeSummary,
     EvaluationSummary,
 )
+from app.schemas.research_runtime import ResearchLedger
 from app.services.research_runtime_service import ResearchRuntimeService
 from app.tools.competition_runtime import (
     build_timeline_template,
@@ -91,6 +92,7 @@ def run_evaluation_case(case: EvaluationCase, service: ResearchRuntimeService) -
         request = request.model_copy(update={"task_id": f"eval-{case.id}"})
     status = service.create_agent_task(request)
     status = _wait_for_terminal_status(service, status.run_id)
+    ledger = service.get_ledger(status.ledger_id)
     artifacts = service.get_task_artifacts(status.run_id)
 
     artifact_payload = {}
@@ -132,6 +134,8 @@ def run_evaluation_case(case: EvaluationCase, service: ResearchRuntimeService) -
         and status.status not in {"failed", "cancelled"}
         and quality_score >= quality_threshold
     )
+    error_messages = _collect_error_messages(status, ledger)
+    detailed_issue_counts = _collect_detailed_issue_counts(ledger)
     return EvaluationCaseResult(
         id=case.id,
         task_type=case.task_type,
@@ -140,6 +144,7 @@ def run_evaluation_case(case: EvaluationCase, service: ResearchRuntimeService) -
         status=status.status,
         current_state=status.current_state,
         completion_path=_derive_completion_path(status),
+        provider_success_path=_derive_provider_success_path(status, ledger),
         requested_runtime_mode=status.requested_runtime_mode,
         effective_runtime_mode=status.effective_runtime_mode,
         effective_model=status.effective_model,
@@ -153,6 +158,12 @@ def run_evaluation_case(case: EvaluationCase, service: ResearchRuntimeService) -
         quality_score=quality_score,
         quality_threshold=quality_threshold,
         failed_quality_checks=failed_quality_checks,
+        error_buckets=list(error_messages.keys()),
+        error_messages=error_messages,
+        structured_parse_error_count=detailed_issue_counts["structured_parse_error_count"],
+        json_fallback_parse_error_count=detailed_issue_counts["json_fallback_parse_error_count"],
+        post_normalization_validation_issue_count=detailed_issue_counts["post_normalization_validation_issue_count"],
+        timeout_error_count=detailed_issue_counts["timeout_error_count"],
     )
 
 
@@ -347,20 +358,47 @@ def _build_runtime_summary(results: list[EvaluationCaseResult], *, runtime_mode:
     total = len(results) or 1
     latencies = sorted(float(item.elapsed_ms) for item in results if item.elapsed_ms is not None)
     direct_success_cases = sum(1 for item in results if item.completion_path == "provider")
+    structured_direct_success_cases = sum(
+        1 for item in results if item.completion_path == "provider" and item.provider_success_path == "structured"
+    )
+    json_fallback_success_cases = sum(
+        1 for item in results if item.completion_path == "provider" and item.provider_success_path == "plain_json_fallback"
+    )
+    provider_structured_cases = sum(1 for item in results if item.provider_success_path == "structured")
+    provider_plain_json_cases = sum(1 for item in results if item.provider_success_path == "plain_json_fallback")
     fallback_cases = sum(1 for item in results if item.completion_path == "mock_fallback")
     hard_failure_cases = sum(1 for item in results if item.completion_path in {"failed", "cancelled"})
     awaiting_review_cases = sum(1 for item in results if item.completion_path == "awaiting_review")
     artifact_complete_cases = sum(1 for item in results if item.artifact_complete)
+    error_bucket_counts = _aggregate_error_bucket_counts(results)
+    error_bucket_examples = _aggregate_error_bucket_examples(results)
+    structured_parse_error_count = sum(item.structured_parse_error_count for item in results)
+    json_fallback_parse_error_count = sum(item.json_fallback_parse_error_count for item in results)
+    post_normalization_validation_issue_count = sum(
+        item.post_normalization_validation_issue_count for item in results
+    )
+    timeout_error_count = sum(item.timeout_error_count for item in results)
 
     return EvaluationRuntimeSummary(
         requested_runtime_mode=runtime_mode,
         direct_success_rate=round(direct_success_cases / total, 4),
+        structured_direct_success_rate=round(structured_direct_success_cases / total, 4),
+        json_fallback_success_rate=round(json_fallback_success_cases / total, 4),
+        mock_fallback_success_rate=round(fallback_cases / total, 4),
+        provider_structured_success_rate=round(provider_structured_cases / total, 4),
+        provider_plain_json_success_rate=round(provider_plain_json_cases / total, 4),
         fallback_rate=round(fallback_cases / total, 4),
         hard_failure_rate=round(hard_failure_cases / total, 4),
         awaiting_review_ratio=round(awaiting_review_cases / total, 4),
         artifact_completeness_ratio=round(artifact_complete_cases / total, 4),
         avg_latency_ms=round(sum(latencies) / len(latencies), 2) if latencies else 0.0,
         p95_latency_ms=_percentile(latencies, 0.95),
+        error_bucket_counts=error_bucket_counts,
+        error_bucket_examples=error_bucket_examples,
+        structured_parse_error_count=structured_parse_error_count,
+        json_fallback_parse_error_count=json_fallback_parse_error_count,
+        post_normalization_validation_issue_count=post_normalization_validation_issue_count,
+        timeout_error_count=timeout_error_count,
     )
 
 
@@ -376,6 +414,105 @@ def _derive_completion_path(status: AgentTaskStatusResponse) -> str:
     if status.effective_runtime_mode == "mock":
         return "mock"
     return "provider"
+
+
+def _derive_provider_success_path(
+    status: AgentTaskStatusResponse,
+    ledger: ResearchLedger | None,
+) -> str | None:
+    if status.effective_runtime_mode != "agents_sdk" or status.used_mock_fallback:
+        return None
+    if status.status not in {"completed", "awaiting_review"}:
+        return None
+    if ledger is None:
+        return "structured"
+    provider_paths = [
+        _as_dict(value).get("path")
+        for key, value in ledger.repaired_outputs.items()
+        if key.endswith(":provider_path")
+    ]
+    if any(path == "plain_json_fallback" for path in provider_paths):
+        return "plain_json_fallback"
+    return "structured"
+
+
+def _collect_error_messages(
+    status: AgentTaskStatusResponse,
+    ledger: ResearchLedger | None,
+) -> dict[str, str]:
+    buckets: dict[str, str] = {}
+    if ledger is not None:
+        for issue in list(ledger.parse_errors) + list(ledger.validation_errors):
+            bucket = _map_issue_kind_to_bucket(issue.kind)
+            if bucket is not None and bucket not in buckets:
+                buckets[bucket] = issue.message
+    if status.used_mock_fallback:
+        buckets.setdefault("fallback_to_mock", status.fallback_reason or "mock fallback used")
+    if status.status in {"failed", "cancelled"}:
+        buckets.setdefault("hard_failed", status.result.summary or status.status)
+    return buckets
+
+
+def _collect_detailed_issue_counts(ledger: ResearchLedger | None) -> dict[str, int]:
+    counts = {
+        "structured_parse_error_count": 0,
+        "json_fallback_parse_error_count": 0,
+        "post_normalization_validation_issue_count": 0,
+        "timeout_error_count": 0,
+    }
+    if ledger is None:
+        return counts
+    for issue in list(ledger.parse_errors) + list(ledger.validation_errors):
+        stage = issue.stage or ""
+        message = (issue.message or "").lower()
+        if issue.kind == "parse_error":
+            if stage.endswith(":plain_json_fallback"):
+                counts["json_fallback_parse_error_count"] += 1
+            else:
+                counts["structured_parse_error_count"] += 1
+        if issue.kind == "validation_error":
+            counts["post_normalization_validation_issue_count"] += 1
+        if issue.kind == "provider_exception" and (
+            "timeout" in message or "timed out" in message or "max turns" in message
+        ):
+            counts["timeout_error_count"] += 1
+    return counts
+
+
+def _map_issue_kind_to_bucket(kind: str) -> str | None:
+    if kind == "schema_compatibility_error":
+        return "schema_compatibility_error"
+    if kind == "provider_exception" or kind == "runtime_error":
+        return "provider_exception"
+    if kind in {"parse_error", "provider_response_parse_error"}:
+        return "parse_error"
+    if kind == "validation_error":
+        return "validation_error"
+    return None
+
+
+def _aggregate_error_bucket_counts(results: list[EvaluationCaseResult]) -> dict[str, int]:
+    counts = {
+        "schema_compatibility_error": 0,
+        "provider_exception": 0,
+        "parse_error": 0,
+        "validation_error": 0,
+        "fallback_to_mock": 0,
+        "hard_failed": 0,
+    }
+    for item in results:
+        for bucket in item.error_buckets:
+            counts[bucket] += 1
+    return counts
+
+
+def _aggregate_error_bucket_examples(results: list[EvaluationCaseResult]) -> dict[str, str]:
+    examples: dict[str, str] = {}
+    for item in results:
+        for bucket, message in item.error_messages.items():
+            if bucket not in examples:
+                examples[bucket] = f"{item.id} ({item.run_id}): {message}"
+    return examples
 
 
 def _percentile(values: list[float], ratio: float) -> float:

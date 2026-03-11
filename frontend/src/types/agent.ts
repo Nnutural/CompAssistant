@@ -79,6 +79,7 @@ export interface AgentTaskStatusResponse {
   requested_runtime_mode?: string | null
   effective_runtime_mode?: AgentRuntimeMode | null
   effective_model?: string | null
+  provider_success_path?: 'structured' | 'plain_json_fallback' | null
   used_mock_fallback: boolean
   fallback_reason?: string | null
   elapsed_ms?: number | null
@@ -142,6 +143,7 @@ export interface AgentTaskHistoryItem {
   requested_runtime_mode?: string | null
   effective_runtime_mode?: AgentRuntimeMode | null
   effective_model?: string | null
+  provider_success_path?: 'structured' | 'plain_json_fallback' | null
   used_mock_fallback: boolean
   parent_run_id?: string | null
   available_actions: AgentTaskControlAction[]

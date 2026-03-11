@@ -275,6 +275,7 @@ class ResearchRuntimeService:
                     requested_runtime_mode=ledger.requested_runtime_mode,
                     effective_runtime_mode=ledger.effective_runtime_mode,
                     effective_model=ledger.effective_model,
+                    provider_success_path=self._derive_provider_success_path(ledger),
                     used_mock_fallback=ledger.used_mock_fallback,
                     parent_run_id=ledger.parent_run_id,
                     available_actions=self._derive_available_actions(ledger),
@@ -859,6 +860,7 @@ class ResearchRuntimeService:
             requested_runtime_mode=ledger.requested_runtime_mode,
             effective_runtime_mode=ledger.effective_runtime_mode,
             effective_model=ledger.effective_model,
+            provider_success_path=self._derive_provider_success_path(ledger),
             used_mock_fallback=ledger.used_mock_fallback,
             fallback_reason=ledger.fallback_reason,
             elapsed_ms=ledger.elapsed_ms,
@@ -889,6 +891,22 @@ class ResearchRuntimeService:
         if artifact_count == 0:
             artifact_count = len(ledger.final_artifacts)
         return artifact_count
+
+    def _derive_provider_success_path(self, ledger: ResearchLedger) -> str | None:
+        if ledger.effective_runtime_mode != "agents_sdk" or ledger.used_mock_fallback:
+            return None
+        if ledger.current_state not in {"completed", "awaiting_review"}:
+            return None
+        provider_paths = [
+            value.get("path")
+            for key, value in ledger.repaired_outputs.items()
+            if key.endswith(":provider_path") and isinstance(value, dict)
+        ]
+        if any(path == "plain_json_fallback" for path in provider_paths):
+            return "plain_json_fallback"
+        if any(path == "structured" for path in provider_paths):
+            return "structured"
+        return None
 
     def _derive_available_actions(self, ledger: ResearchLedger) -> list[str]:
         status_value = self._derive_task_run_status(ledger)

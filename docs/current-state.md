@@ -1,66 +1,72 @@
 # 当前状态
 
-本文档基于 2026-03-10 的仓库状态更新。
+## Phase 5G 快照
 
-## 已完成能力
+当前仓库不是从零开始的 agent 原型，而是已经完成到 Phase 5G 的竞赛助手后端与最小前端面板。
 
-后端：
+系统当前已经具备：
 
-- FastAPI 已提供 `competitions`、`research-runtime`、`agent/tasks` 三组路由
-- 真实执行链路仍是 `FastAPI route -> ResearchRuntimeService -> mock manager / Ark-only Agents SDK runtime -> LedgerRepository`
-- 三类主任务可运行：
+- Ark-only agent runtime
+- 3 类主任务：
   - `competition_recommendation`
   - `competition_eligibility_check`
   - `competition_timeline_plan`
-- legacy `research_plan` 仍保兼容
-- 已有显式状态机、events、artifacts、历史列表、`retry / cancel / review`
-- 已有 output repair / validation 和本地领域数据 grounding
+- `task / run / events / artifacts` API
+- 历史列表、`retry / cancel / review`
+- 前端 `Simple / Advanced` 双模式输入
+- `requested_runtime_mode / effective_runtime_mode / effective_model / used_mock_fallback / fallback_reason` 可观测
+- `agents_sdk` 专用评测入口
+- 最小浏览器 E2E
+- 最小 CI matrix
 
-前端：
+## 5G 的核心修复
 
-- 现有 `competitions` 页面保留
-- 已有最小 Agent 面板
-- 已支持状态轮询、事件时间线、artifacts、历史任务和控制入口
-- 已支持 `简洁模式 / 高级模式` 双模式输入
-- `eligibility / timeline` 的 Simple Mode 已补充竞赛建议列表，最终仍提交 canonical `competition_id`
+本轮优先处理的是 `recommendation-003`。
 
-评测与演示：
+修复前的原始失败链路：
 
-- `backend/data/evals/` 已有本地样例
-- `backend/scripts/run_eval.py` 可运行结构 + 质量混合回归
-- `backend/scripts/run_eval_agents_sdk.py` 可单独产出真实 Ark 路径评测
-- 前端已有最小 Playwright browser smoke
-- 已补 demo fixtures、demo checklist 和演示文档
+- `competition_recommendation` 的 structured 路径触发 `Max turns ... exceeded`
+- 后续 provider-side plain JSON fallback 又触发 `Runner call timed out after 45.0s`
+- 最终只能依赖 mock fallback，因此不是 direct success
 
-运行语义：
+修复后的关键变化：
 
-- 正式 runtime mode 只有 `mock` 与 `agents_sdk`
-- `live` 不再作为可接受模式，继续使用会直接报错
-- 每个 run 都会记录 `requested_runtime_mode / effective_runtime_mode / effective_model`
-- 若真实 provider 失败并降级到 mock，会记录 `used_mock_fallback=true` 与 `fallback_reason`
+- recommendation 的 provider grounding 改成单一、紧凑的本地过滤工具
+- recommendation prompt 进一步收紧，只允许输出 canonical artifact 所需字段
+- recommendation output drift 在进入严格校验前做最小 normalization
+- SDK session id 变成“每次运行唯一”，避免 SQLite session 复用旧对话污染 spot check
 
-## 当前边界
+当前最新实测下，`recommendation-003` 已可在真实 `agents_sdk` 路径上完成：
 
-- `payload` 仍然是内部 canonical representation
-- Simple Mode 只是输入适配层，不改变 task API
-- attachments 仍只写入 `payload.attachments` 元数据
-- competitions API 继续保持可用
-- `completed` 需要结合 `effective_runtime_mode` 与 `used_mock_fallback` 解读，不能直接等价为“Ark 直出成功”
+- `strict_mode=True`
+- `effective_runtime_mode=agents_sdk`
+- `used_mock_fallback=false`
+- `provider_success_path=structured`
 
-## 未完成能力
+当前最新的 `agents_sdk` 3x3 spot check 结果是：
 
-- 没有聊天式产品输入层
-- 没有真正的多模态 runtime 消费链路
-- 没有 WebSocket
-- 没有 Redis / Celery / 消息队列
-- 没有跨进程 durable 恢复
-- 没有完整审批流或复杂权限体系
+- `direct_success_rate=1.000`
+- `structured_direct_success_rate=1.000`
+- `mock_fallback_success_rate=0.000`
 
-## 已知限制
+这说明本轮优先处理的 `recommendation-003` 主路径问题已经不再阻塞小样本直出。
 
-- 背景执行仍基于进程内线程池
-- `cancel` 是协作式取消，不是强制打断底层模型调用
-- 浏览器级 smoke 当前覆盖 recommendation happy path、一次 retry，以及一条 review 失败 detail 展示
-- `cancel` 仍未纳入浏览器级自动化 smoke
-- 附件只是输入占位元数据，不代表已完成完整多模态推理
-- `agents_sdk` 路径的 structured output 仍依赖 provider-compatible schema sanitizer，更多 provider 差异仍可能触发 fallback
+## 当前成功语义
+
+不要再把所有 `completed` 都解释成“Ark 直出成功”。
+
+正确解释方式是：
+
+- `effective_runtime_mode=agents_sdk` + `provider_success_path=structured`
+  - Ark structured 直出成功
+- `effective_runtime_mode=agents_sdk` + `provider_success_path=plain_json_fallback`
+  - Ark structured 失败，但 provider-side JSON fallback 收敛成功
+- `used_mock_fallback=true`
+  - provider 失败，mock 补全完成
+
+## 当前已知限制
+
+- `queued / running` 仍不支持跨重启恢复
+- `attachments` 仍只记录到 `payload.attachments`，runtime 不消费
+- 一些 case 仍会出现 provider parse issue，但现在会被明确记录，不再默默混成 mock 成功
+- 远端 GitHub Actions workflow 已入库；当前公开 GitHub API 对 `origin` 返回的是 `0 workflows / 0 workflow runs`，说明远端实证记录还没有出现
