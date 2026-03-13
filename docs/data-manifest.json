@@ -1,0 +1,622 @@
+{
+  "version": 1,
+  "audit_scope": "repository-manual-audit",
+  "items": [
+    {
+      "name": "agent_task_create_request",
+      "layer": "backend_api",
+      "status": "implemented",
+      "source_type": "api_contract",
+      "source_of_truth": true,
+      "persisted": false,
+      "schema_ref": "backend/app/schemas/agent_tasks.py",
+      "code_refs": [
+        "backend/app/schemas/agent_tasks.py",
+        "backend/app/api/routes/agent_tasks.py",
+        "frontend/src/types/agent.ts"
+      ],
+      "consumers": [
+        "POST /api/agent/tasks",
+        "ResearchRuntimeService.create_agent_task",
+        "frontend TaskForm"
+      ],
+      "notes": "Canonical task creation contract. Extra fields are forbidden by the backend model."
+    },
+    {
+      "name": "agent_task_status_response",
+      "layer": "backend_api",
+      "status": "implemented",
+      "source_type": "api_contract",
+      "source_of_truth": true,
+      "persisted": false,
+      "schema_ref": "backend/app/schemas/agent_tasks.py",
+      "code_refs": [
+        "backend/app/schemas/agent_tasks.py",
+        "backend/app/services/research_runtime_service.py",
+        "frontend/src/types/agent.ts"
+      ],
+      "consumers": [
+        "GET /api/agent/tasks/{run_id}",
+        "frontend RunStatus",
+        "evaluation_service"
+      ],
+      "notes": "Derived from ResearchLedger rather than persisted as a standalone object."
+    },
+    {
+      "name": "agent_task_events_response",
+      "layer": "backend_api",
+      "status": "implemented",
+      "source_type": "api_contract",
+      "source_of_truth": true,
+      "persisted": true,
+      "schema_ref": "backend/app/schemas/agent_tasks.py",
+      "code_refs": [
+        "backend/app/schemas/agent_tasks.py",
+        "backend/app/agents/run_state.py",
+        "backend/app/services/research_runtime_service.py"
+      ],
+      "consumers": [
+        "GET /api/agent/tasks/{run_id}/events",
+        "frontend EventTimeline",
+        "route tests"
+      ],
+      "notes": "Items are stored inside ledger.events and surfaced through a response wrapper."
+    },
+    {
+      "name": "agent_task_artifacts_response",
+      "layer": "backend_api",
+      "status": "implemented",
+      "source_type": "api_contract",
+      "source_of_truth": true,
+      "persisted": true,
+      "schema_ref": "backend/app/schemas/agent_tasks.py",
+      "code_refs": [
+        "backend/app/schemas/agent_tasks.py",
+        "backend/app/services/research_runtime_service.py",
+        "backend/app/agents/manager.py"
+      ],
+      "consumers": [
+        "GET /api/agent/tasks/{run_id}/artifacts",
+        "frontend ArtifactPanel",
+        "evaluation_service"
+      ],
+      "notes": "Runtime artifacts are preferred. final_artifacts refs are used as a fallback shape."
+    },
+    {
+      "name": "agent_task_history_response",
+      "layer": "backend_api",
+      "status": "implemented",
+      "source_type": "api_contract",
+      "source_of_truth": true,
+      "persisted": true,
+      "schema_ref": "backend/app/schemas/agent_tasks.py",
+      "code_refs": [
+        "backend/app/schemas/agent_tasks.py",
+        "backend/app/services/research_runtime_service.py",
+        "frontend/src/types/agent.ts"
+      ],
+      "consumers": [
+        "GET /api/agent/tasks",
+        "frontend TaskHistoryList"
+      ],
+      "notes": "History rows are derived by listing persisted ledgers with run_id values."
+    },
+    {
+      "name": "agent_task_control_payloads",
+      "layer": "backend_api",
+      "status": "implemented",
+      "source_type": "api_contract",
+      "source_of_truth": true,
+      "persisted": true,
+      "schema_ref": "backend/app/schemas/agent_tasks.py",
+      "code_refs": [
+        "backend/app/schemas/agent_tasks.py",
+        "backend/app/api/routes/agent_tasks.py",
+        "backend/app/agents/run_state.py"
+      ],
+      "consumers": [
+        "retry endpoint",
+        "cancel endpoint",
+        "review endpoint"
+      ],
+      "notes": "Requests are short-lived, but resulting actions are persisted into ledger.control_records and events."
+    },
+    {
+      "name": "research_ledger",
+      "layer": "runtime",
+      "status": "implemented",
+      "source_type": "runtime_generated",
+      "source_of_truth": true,
+      "persisted": true,
+      "schema_ref": "backend/app/schemas/research_runtime.py",
+      "code_refs": [
+        "backend/app/schemas/research_runtime.py",
+        "backend/app/repositories/ledger_repository.py",
+        "backend/app/services/research_runtime_service.py"
+      ],
+      "consumers": [
+        "ResearchRuntimeService",
+        "task status/history/artifact APIs",
+        "tests"
+      ],
+      "notes": "Current persisted source-of-truth for run state, artifacts, issues, and request metadata."
+    },
+    {
+      "name": "runtime_state_trace_fields",
+      "layer": "runtime",
+      "status": "implemented",
+      "source_type": "runtime_generated",
+      "source_of_truth": true,
+      "persisted": true,
+      "schema_ref": "backend/app/schemas/research_runtime.py",
+      "code_refs": [
+        "backend/app/agents/run_state.py",
+        "backend/app/agents/manager.py",
+        "backend/app/services/research_runtime_service.py"
+      ],
+      "consumers": [
+        "frontend timeline",
+        "evaluation_service",
+        "debugging"
+      ],
+      "notes": "Includes events, raw_outputs, repaired_outputs, validation_errors, parse_errors, and control_records."
+    },
+    {
+      "name": "competition_recommendation_artifact",
+      "layer": "runtime",
+      "status": "implemented",
+      "source_type": "artifact_contract",
+      "source_of_truth": true,
+      "persisted": true,
+      "schema_ref": "backend/app/schemas/research_runtime.py",
+      "code_refs": [
+        "backend/app/schemas/research_runtime.py",
+        "backend/app/agents/competition_recommender.py",
+        "backend/app/agents/output_repair.py"
+      ],
+      "consumers": [
+        "artifact API",
+        "evaluation_service",
+        "frontend ArtifactPanel"
+      ],
+      "notes": "Structured output for recommendation runs. Provider output may be normalized before validation."
+    },
+    {
+      "name": "competition_eligibility_artifact",
+      "layer": "runtime",
+      "status": "implemented",
+      "source_type": "artifact_contract",
+      "source_of_truth": true,
+      "persisted": true,
+      "schema_ref": "backend/app/schemas/research_runtime.py",
+      "code_refs": [
+        "backend/app/schemas/research_runtime.py",
+        "backend/app/agents/eligibility_checker.py",
+        "backend/app/agents/output_validation.py"
+      ],
+      "consumers": [
+        "artifact API",
+        "evaluation_service",
+        "review flow"
+      ],
+      "notes": "May enter awaiting_review when non-empty attention_points or rationale requirements are not met."
+    },
+    {
+      "name": "competition_timeline_artifact",
+      "layer": "runtime",
+      "status": "implemented",
+      "source_type": "artifact_contract",
+      "source_of_truth": true,
+      "persisted": true,
+      "schema_ref": "backend/app/schemas/research_runtime.py",
+      "code_refs": [
+        "backend/app/schemas/research_runtime.py",
+        "backend/app/agents/timeline_planner.py",
+        "backend/app/agents/output_validation.py"
+      ],
+      "consumers": [
+        "artifact API",
+        "evaluation_service",
+        "frontend ArtifactPanel"
+      ],
+      "notes": "Deadline remains a string contract; milestones and stage_plan drive eval completeness."
+    },
+    {
+      "name": "legacy_research_plan_records",
+      "layer": "runtime",
+      "status": "partial",
+      "source_type": "runtime_generated",
+      "source_of_truth": true,
+      "persisted": true,
+      "schema_ref": "backend/app/schemas/research_runtime.py",
+      "code_refs": [
+        "backend/app/agents/trend_scout.py",
+        "backend/app/agents/evidence_scout.py",
+        "backend/app/agents/critic.py",
+        "backend/app/agents/manager.py"
+      ],
+      "consumers": [
+        "legacy /api/research-runtime/run",
+        "contract examples",
+        "legacy tests"
+      ],
+      "notes": "Only the research_plan compatibility path uses source_registry and evidence_log as first-class data."
+    },
+    {
+      "name": "competition_catalog_dataset",
+      "layer": "storage",
+      "status": "implemented",
+      "source_type": "internal_static",
+      "source_of_truth": true,
+      "persisted": true,
+      "schema_ref": "backend/app/schemas/competition.py",
+      "code_refs": [
+        "backend/data/competitions.json",
+        "backend/app/api/routes/competitions.py",
+        "frontend/src/api/competitions.ts"
+      ],
+      "consumers": [
+        "competitions API",
+        "frontend competition suggestions",
+        "competition runtime tools"
+      ],
+      "notes": "Base competition directory consumed by both public competition APIs and agent runtime tools."
+    },
+    {
+      "name": "competition_enrichment_dataset",
+      "layer": "storage",
+      "status": "implemented",
+      "source_type": "internal_static",
+      "source_of_truth": true,
+      "persisted": true,
+      "schema_ref": "backend/app/tools/competition_runtime.py",
+      "code_refs": [
+        "backend/data/competitions_enriched.json",
+        "backend/app/tools/competition_runtime.py"
+      ],
+      "consumers": [
+        "recommendation scoring",
+        "eligibility notes",
+        "timeline template selection"
+      ],
+      "notes": "Manual enrichment keyed by field and competition override ids."
+    },
+    {
+      "name": "eligibility_rules_dataset",
+      "layer": "storage",
+      "status": "implemented",
+      "source_type": "internal_static",
+      "source_of_truth": true,
+      "persisted": true,
+      "schema_ref": "backend/app/tools/competition_runtime.py",
+      "code_refs": [
+        "backend/data/eligibility_rules.json",
+        "backend/app/tools/competition_runtime.py"
+      ],
+      "consumers": [
+        "eligibility runtime tool",
+        "evaluation_service"
+      ],
+      "notes": "Manual rules with defaults, field expectations, and competition overrides."
+    },
+    {
+      "name": "recommendation_rubric_dataset",
+      "layer": "storage",
+      "status": "implemented",
+      "source_type": "internal_static",
+      "source_of_truth": true,
+      "persisted": true,
+      "schema_ref": "backend/app/tools/competition_runtime.py",
+      "code_refs": [
+        "backend/data/recommendation_rubric.json",
+        "backend/app/tools/competition_runtime.py",
+        "backend/app/services/evaluation_service.py"
+      ],
+      "consumers": [
+        "recommendation ranking",
+        "evaluation quality scoring"
+      ],
+      "notes": "A single static rubric drives both runtime ranking and eval expectations."
+    },
+    {
+      "name": "timeline_templates_dataset",
+      "layer": "storage",
+      "status": "implemented",
+      "source_type": "internal_static",
+      "source_of_truth": true,
+      "persisted": true,
+      "schema_ref": "backend/app/tools/competition_runtime.py",
+      "code_refs": [
+        "backend/data/timeline_templates.json",
+        "backend/app/tools/competition_runtime.py"
+      ],
+      "consumers": [
+        "timeline runtime tool",
+        "evaluation_service"
+      ],
+      "notes": "Template-driven reverse scheduling source."
+    },
+    {
+      "name": "frontend_simple_input_adapter",
+      "layer": "frontend",
+      "status": "implemented",
+      "source_type": "manual_input",
+      "source_of_truth": false,
+      "persisted": false,
+      "schema_ref": "frontend/src/features/agent/input_adapter.ts",
+      "code_refs": [
+        "frontend/src/features/agent/input_adapter.ts",
+        "frontend/src/features/agent/components/TaskForm.vue",
+        "frontend/src/types/agent.ts"
+      ],
+      "consumers": [
+        "TaskForm simple mode",
+        "payload preview",
+        "createAgentTask"
+      ],
+      "notes": "Maps natural form fields into canonical backend payloads. Backend schemas remain authoritative."
+    },
+    {
+      "name": "frontend_advanced_payload_draft",
+      "layer": "frontend",
+      "status": "implemented",
+      "source_type": "manual_input",
+      "source_of_truth": false,
+      "persisted": false,
+      "schema_ref": "frontend/src/types/agent.ts",
+      "code_refs": [
+        "frontend/src/features/agent/components/TaskForm.vue",
+        "frontend/src/features/agent/config.ts",
+        "frontend/src/types/agent.ts"
+      ],
+      "consumers": [
+        "TaskForm advanced mode",
+        "debug/demo flows"
+      ],
+      "notes": "Direct JSON editing path with only JSON.parse validation on the frontend."
+    },
+    {
+      "name": "payload_attachments_metadata",
+      "layer": "frontend",
+      "status": "partial",
+      "source_type": "manual_input",
+      "source_of_truth": false,
+      "persisted": true,
+      "schema_ref": "frontend/src/features/agent/input_adapter.ts",
+      "code_refs": [
+        "frontend/src/features/agent/input_adapter.ts",
+        "frontend/src/features/agent/components/TaskForm.vue",
+        "docs/frontend-integration.md"
+      ],
+      "consumers": [
+        "payload preview",
+        "ledger.request_payload"
+      ],
+      "notes": "Only metadata is captured. File binaries are not uploaded or consumed by runtime."
+    },
+    {
+      "name": "evaluation_case_dataset",
+      "layer": "eval",
+      "status": "implemented",
+      "source_type": "test_fixture",
+      "source_of_truth": true,
+      "persisted": true,
+      "schema_ref": "backend/app/schemas/evaluation.py",
+      "code_refs": [
+        "backend/data/evals/competition_recommendation.json",
+        "backend/data/evals/competition_eligibility_check.json",
+        "backend/data/evals/competition_timeline_plan.json",
+        "backend/app/services/evaluation_service.py"
+      ],
+      "consumers": [
+        "run_eval.py",
+        "run_eval_agents_sdk.py",
+        "test_eval_regression.py"
+      ],
+      "notes": "Thirty manual cases define coverage and minimal quality gates for the supported competition task types."
+    },
+    {
+      "name": "evaluation_report",
+      "layer": "eval",
+      "status": "implemented",
+      "source_type": "runtime_generated",
+      "source_of_truth": true,
+      "persisted": false,
+      "schema_ref": "backend/app/schemas/evaluation.py",
+      "code_refs": [
+        "backend/app/schemas/evaluation.py",
+        "backend/app/services/evaluation_service.py",
+        "backend/scripts/run_eval.py"
+      ],
+      "consumers": [
+        "CLI evaluation summaries",
+        "eval regression tests"
+      ],
+      "notes": "Generated in-memory unless callers redirect CLI JSON output elsewhere."
+    },
+    {
+      "name": "e2e_demo_cases",
+      "layer": "eval",
+      "status": "implemented",
+      "source_type": "test_fixture",
+      "source_of_truth": true,
+      "persisted": true,
+      "schema_ref": "frontend/e2e/fixtures/agent-demo-cases.json",
+      "code_refs": [
+        "frontend/e2e/fixtures/agent-demo-cases.json",
+        "frontend/e2e/agent-panel.spec.ts",
+        "frontend/e2e/agent-control-errors.spec.ts"
+      ],
+      "consumers": [
+        "Playwright smoke tests"
+      ],
+      "notes": "UI-oriented examples, not business source data."
+    },
+    {
+      "name": "docs_contract_schemas_and_examples",
+      "layer": "docs",
+      "status": "implemented",
+      "source_type": "test_fixture",
+      "source_of_truth": false,
+      "persisted": true,
+      "schema_ref": "docs/schemas/agent-task-envelope.schema.json",
+      "code_refs": [
+        "docs/schemas/agent-task-envelope.schema.json",
+        "docs/examples/agent-task-envelope.minimal.json",
+        "backend/app/tests/test_research_runtime_contracts.py"
+      ],
+      "consumers": [
+        "contract docs",
+        "legacy contract tests"
+      ],
+      "notes": "Useful documentation artifacts, but the live source-of-truth remains backend Pydantic models."
+    },
+    {
+      "name": "agents_sdk_provider_outputs",
+      "layer": "runtime",
+      "status": "partial",
+      "source_type": "provider_response",
+      "source_of_truth": false,
+      "persisted": true,
+      "schema_ref": "backend/app/agents/output_repair.py",
+      "code_refs": [
+        "backend/app/agents/agent_factory.py",
+        "backend/app/agents/output_repair.py",
+        "backend/app/agents/output_validation.py"
+      ],
+      "consumers": [
+        "AgentsSDKResearchRuntime",
+        "evaluation_service",
+        "debug_agents_sdk_case.py"
+      ],
+      "notes": "Only normalized payloads and issue summaries are persisted; full provider raw responses are not stored."
+    },
+    {
+      "name": "provider_runtime_metadata",
+      "layer": "runtime",
+      "status": "implemented",
+      "source_type": "runtime_generated",
+      "source_of_truth": true,
+      "persisted": true,
+      "schema_ref": "backend/app/schemas/agent_tasks.py",
+      "code_refs": [
+        "backend/app/services/research_runtime_service.py",
+        "backend/app/schemas/agent_tasks.py",
+        "frontend/src/types/agent.ts"
+      ],
+      "consumers": [
+        "frontend RunStatus",
+        "frontend TaskHistoryList",
+        "evaluation_service"
+      ],
+      "notes": "Interpretation fields required to separate provider direct success from mock fallback."
+    },
+    {
+      "name": "research_runtime_session_db",
+      "layer": "storage",
+      "status": "implemented",
+      "source_type": "runtime_generated",
+      "source_of_truth": true,
+      "persisted": true,
+      "schema_ref": "backend/app/agents/runtime_tools.py",
+      "code_refs": [
+        "backend/app/agents/runtime_tools.py",
+        "backend/app/agents/sdk_runtime.py",
+        "backend/data/research_runtime_sessions.sqlite3"
+      ],
+      "consumers": [
+        "AgentsSDKResearchRuntime",
+        "ResearchAgentFactory"
+      ],
+      "notes": "SQLite session state for the provider path. Not part of API payloads."
+    },
+    {
+      "name": "crawler_placeholder_contracts",
+      "layer": "crawler",
+      "status": "placeholder",
+      "source_type": "placeholder_scaffold",
+      "source_of_truth": true,
+      "persisted": false,
+      "schema_ref": "backend/app/crawler/schemas.py",
+      "code_refs": [
+        "backend/app/crawler/schemas.py",
+        "backend/app/crawler/service.py",
+        "backend/app/tests/test_crawler_scaffold.py"
+      ],
+      "consumers": [
+        "crawler scaffold tests"
+      ],
+      "notes": "Real crawling is not implemented and the scaffold is not wired into APIs or runtime."
+    },
+    {
+      "name": "mysql_runtime_settings",
+      "layer": "config",
+      "status": "partial",
+      "source_type": "config",
+      "source_of_truth": true,
+      "persisted": false,
+      "schema_ref": "backend/app/core/config.py",
+      "code_refs": [
+        "backend/app/core/config.py",
+        "backend/.env.example",
+        "backend/AGENTS.md"
+      ],
+      "consumers": [
+        "Settings"
+      ],
+      "notes": "Configuration exists, but the active request flow does not use a database repository."
+    },
+    {
+      "name": "runtime_database_records",
+      "layer": "storage",
+      "status": "unimplemented",
+      "source_type": "planned_external",
+      "source_of_truth": false,
+      "persisted": false,
+      "schema_ref": "backend/app/core/config.py",
+      "code_refs": [
+        "backend/app/core/config.py",
+        "backend/AGENTS.md",
+        "README.md"
+      ],
+      "consumers": [
+        "none"
+      ],
+      "notes": "Database persistence is mentioned as a future boundary but not wired into task/run/history storage."
+    },
+    {
+      "name": "real_crawler_source_documents",
+      "layer": "crawler",
+      "status": "unimplemented",
+      "source_type": "planned_external",
+      "source_of_truth": false,
+      "persisted": false,
+      "schema_ref": "docs/ai-crawler-placeholder.md",
+      "code_refs": [
+        "docs/ai-crawler-placeholder.md",
+        "backend/app/crawler/README.md"
+      ],
+      "consumers": [
+        "none"
+      ],
+      "notes": "No site adapters, no extraction pipeline, and no real document store exist yet."
+    },
+    {
+      "name": "attachment_binary_content",
+      "layer": "storage",
+      "status": "unimplemented",
+      "source_type": "planned_external",
+      "source_of_truth": false,
+      "persisted": false,
+      "schema_ref": "docs/frontend-integration.md",
+      "code_refs": [
+        "docs/frontend-integration.md",
+        "frontend/src/features/agent/components/TaskForm.vue"
+      ],
+      "consumers": [
+        "none"
+      ],
+      "notes": "Only attachment metadata exists today. There is no upload, file persistence, or runtime consumption path."
+    }
+  ]
+}
