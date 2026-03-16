@@ -533,7 +533,7 @@
     {
       "name": "crawler_placeholder_contracts",
       "layer": "crawler",
-      "status": "placeholder",
+      "status": "partial",
       "source_type": "placeholder_scaffold",
       "source_of_truth": true,
       "persisted": false,
@@ -546,7 +546,162 @@
       "consumers": [
         "crawler scaffold tests"
       ],
-      "notes": "Real crawling is not implemented and the scaffold is not wired into APIs or runtime."
+      "notes": "The placeholder path still exists, but the repository now also has an experimental local-only ingestion loop with real schema, storage, and retrieval."
+    },
+    {
+      "name": "crawler_raw_document",
+      "layer": "crawler",
+      "status": "implemented",
+      "source_type": "crawler_contract",
+      "source_of_truth": true,
+      "persisted": true,
+      "schema_ref": "backend/app/crawler/schemas.py",
+      "code_refs": [
+        "backend/app/crawler/schemas.py",
+        "backend/app/crawler/providers/http_provider.py",
+        "backend/app/crawler/sources/competition_catalog_source.py",
+        "backend/app/tests/test_crawler_documents.py"
+      ],
+      "consumers": [
+        "LocalDocumentIngestionService",
+        "NormalizePipeline"
+      ],
+      "notes": "First-stage crawler object for raw public HTTP pages and local competition JSON rows."
+    },
+    {
+      "name": "crawler_normalized_document",
+      "layer": "crawler",
+      "status": "implemented",
+      "source_type": "crawler_contract",
+      "source_of_truth": true,
+      "persisted": true,
+      "schema_ref": "backend/app/crawler/schemas.py",
+      "code_refs": [
+        "backend/app/crawler/schemas.py",
+        "backend/app/crawler/pipelines/normalize_pipeline.py",
+        "backend/app/crawler/storage/file_system_store.py",
+        "backend/app/tests/test_normalize_pipeline.py"
+      ],
+      "consumers": [
+        "LocalDocumentIngestionService",
+        "filesystem normalized store"
+      ],
+      "notes": "Normalized intermediate document persisted to local JSON files before indexing."
+    },
+    {
+      "name": "crawler_knowledge_record",
+      "layer": "retrieval",
+      "status": "implemented",
+      "source_type": "retrieval_contract",
+      "source_of_truth": true,
+      "persisted": true,
+      "schema_ref": "backend/app/crawler/schemas.py",
+      "code_refs": [
+        "backend/app/crawler/schemas.py",
+        "backend/app/crawler/pipelines/normalize_pipeline.py",
+        "backend/app/retrieval/sqlite_index_store.py",
+        "backend/app/tests/test_sqlite_index_store.py"
+      ],
+      "consumers": [
+        "SQLiteIndexStore",
+        "DocumentSearchService"
+      ],
+      "notes": "Searchable local knowledge object built from normalized documents."
+    },
+    {
+      "name": "experimental_http_policy_source",
+      "layer": "crawler",
+      "status": "implemented",
+      "source_type": "public_static_http",
+      "source_of_truth": false,
+      "persisted": true,
+      "schema_ref": "backend/app/crawler/schemas.py",
+      "code_refs": [
+        "backend/app/crawler/providers/http_provider.py",
+        "backend/scripts/build_local_knowledge_demo.py",
+        "docs/data-sources.md"
+      ],
+      "consumers": [
+        "LocalDocumentIngestionService"
+      ],
+      "notes": "Minimal public static policy source fetched over plain HTTP. No Playwright, login, or dynamic rendering."
+    },
+    {
+      "name": "experimental_competition_catalog_source_documents",
+      "layer": "crawler",
+      "status": "implemented",
+      "source_type": "internal_static",
+      "source_of_truth": false,
+      "persisted": true,
+      "schema_ref": "backend/app/crawler/schemas.py",
+      "code_refs": [
+        "backend/app/crawler/sources/competition_catalog_source.py",
+        "backend/data/competitions.json",
+        "backend/app/tests/test_local_knowledge_integration.py"
+      ],
+      "consumers": [
+        "LocalDocumentIngestionService"
+      ],
+      "notes": "Minimal competition knowledge source derived from the existing local competition catalog."
+    },
+    {
+      "name": "local_knowledge_sqlite_index",
+      "layer": "retrieval",
+      "status": "implemented",
+      "source_type": "runtime_generated",
+      "source_of_truth": true,
+      "persisted": true,
+      "schema_ref": "backend/app/retrieval/schemas.py",
+      "code_refs": [
+        "backend/app/retrieval/sqlite_index_store.py",
+        "backend/app/retrieval/search_service.py",
+        "backend/scripts/build_local_knowledge_demo.py"
+      ],
+      "consumers": [
+        "DocumentSearchService",
+        "eligibility-checker"
+      ],
+      "notes": "SQLite index uses FTS5 when available and falls back to a minimal LIKE path when FTS5 is unavailable."
+    },
+    {
+      "name": "local_retrieval_service",
+      "layer": "retrieval",
+      "status": "implemented",
+      "source_type": "service_contract",
+      "source_of_truth": true,
+      "persisted": false,
+      "schema_ref": "backend/app/retrieval/schemas.py",
+      "code_refs": [
+        "backend/app/retrieval/search_service.py",
+        "backend/app/retrieval/schemas.py",
+        "backend/app/tests/test_retrieval_service.py"
+      ],
+      "consumers": [
+        "search_documents",
+        "get_document",
+        "eligibility-checker local knowledge path"
+      ],
+      "notes": "Single local retrieval boundary for experimental knowledge access."
+    },
+    {
+      "name": "eligibility_checker_local_knowledge_grounding",
+      "layer": "runtime",
+      "status": "partial",
+      "source_type": "feature_flagged_runtime",
+      "source_of_truth": true,
+      "persisted": false,
+      "schema_ref": "backend/app/retrieval/schemas.py",
+      "code_refs": [
+        "backend/app/agents/local_knowledge.py",
+        "backend/app/agents/eligibility_checker.py",
+        "backend/app/agents/agent_factory.py",
+        "backend/app/tests/test_local_knowledge_agent.py"
+      ],
+      "consumers": [
+        "eligibility-checker",
+        "ResearchAgentFactory"
+      ],
+      "notes": "Experimental feature-flagged path that injects retrieval results into the eligibility agent without changing the main runtime flow."
     },
     {
       "name": "mysql_runtime_settings",

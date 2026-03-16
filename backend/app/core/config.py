@@ -22,6 +22,9 @@ class Settings(BaseSettings):
     research_runtime_session_db: str = ''
     research_runtime_strict_mode: bool = False
     research_runtime_provider_timeout_seconds: float = 45.0
+    experimental_local_knowledge_enabled: bool = False
+    experimental_local_knowledge_index_db: str = ''
+    experimental_local_knowledge_top_k: int = 3
 
     @property
     def sqlalchemy_database_uri(self) -> str:

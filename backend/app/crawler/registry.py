@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from .interfaces import CrawlerProvider
+from .providers.http_provider import HttpCrawlerProvider
 from .providers.placeholder_provider import PlaceholderCrawlerProvider
 
 
@@ -8,6 +9,7 @@ DEFAULT_PROVIDER = "placeholder"
 
 _PROVIDERS: dict[str, CrawlerProvider] = {
     DEFAULT_PROVIDER: PlaceholderCrawlerProvider(),
+    "http": HttpCrawlerProvider(),
 }
 
 

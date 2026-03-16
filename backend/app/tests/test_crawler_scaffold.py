@@ -31,7 +31,9 @@ class CrawlerScaffoldTests(unittest.TestCase):
         self.assertIn("Placeholder pipeline executed.", result.notes)
 
     def test_registry_lists_placeholder_provider(self) -> None:
-        self.assertEqual(list_providers(), ["placeholder"])
+        providers = list_providers()
+        self.assertIn("placeholder", providers)
+        self.assertIn("http", providers)
 
 
 if __name__ == "__main__":

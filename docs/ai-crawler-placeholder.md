@@ -1,42 +1,48 @@
 # AI Crawler Placeholder
 
-This document describes the crawler scaffold added in this phase.
+This repository no longer has a crawler scaffold that is purely empty. It now has a minimal experimental local knowledge loop.
 
-## Why this phase is scaffold-only
+## What is implemented now
 
-The current product focus is still the competition assistant, agent runtime,
-task API, and frontend demo loop. The crawler work in this phase is only a
-reserved structure for future implementation.
+- strict document schemas:
+  `RawDocument`, `NormalizedDocument`, `KnowledgeRecord`
+- one public static HTTP provider
+- one normalization pipeline
+- filesystem persistence for raw and normalized documents
+- SQLite local index with FTS5 when available
+- retrieval service used by one feature-flagged agent path
 
-This phase does not implement:
+## What is still intentionally not implemented
 
-- real web crawling
-- login flows
-- proxy handling
-- scheduling
 - browser automation
-- storage integration
+- login flows
+- CAPTCHA or anti-bot bypass
+- multi-site orchestration
+- scheduling
+- proxy rotation
+- generic crawler platform abstractions
+- runtime-wide crawler integration
+- frontend crawler UI
 
-## What is intentionally not introduced
+## Current integration boundary
 
-- no new crawler dependencies
-- no Redis / Celery / queue system
-- no vector database / RAG
-- no new database table
+- The crawler path is still experimental.
+- It is not wired into the public API surface.
+- It does not change the main runtime flow.
+- Only the `eligibility-checker` gets optional local knowledge grounding, and only through retrieval results.
 
-## What is intentionally not connected
+## Storage boundary
 
-- no runtime integration
-- no API route
-- no frontend page
+- raw and normalized documents go to the local filesystem
+- searchable knowledge goes to SQLite
+- agents do not read raw crawler files directly
 
-## Suggested future direction
+## Future direction
 
-When crawler work starts for real, begin with a narrow path:
+If crawler work expands later, keep the rollout order narrow:
 
-1. one site
-2. one provider
-3. one offline validation task
+1. one source
+2. one validation path
+3. one retrieval consumer
 
-Only after that should the project consider extraction pipelines,
-normalization, storage bridging, or runtime integration.
+Only after that should the project consider a broader crawler platform.

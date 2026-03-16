@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from app.agents.local_knowledge import find_local_knowledge_for_competition
 from app.agents.schema_adapter import build_provider_output_schema
 from app.schemas.research_runtime import AgentTaskEnvelope, CompetitionEligibilityArtifact, ResearchLedger
 from app.tools import check_eligibility_rules, unwrap_tool_result
@@ -21,6 +22,16 @@ class EligibilityCheckerAgent:
             "check_eligibility_rules",
         )
         competition = result["competition"]
+        local_knowledge = find_local_knowledge_for_competition(competition_id, profile)
+        attention_points = list(result["attention_points"])
+        rationale = list(result["rationale"])
+        for item in local_knowledge:
+            reference_note = f"Local knowledge reference: {item.title} ({item.source_name})"
+            if reference_note not in attention_points:
+                attention_points.append(reference_note)
+            grounded_rationale = f"Grounded with local document '{item.title}': {item.summary or item.url}"
+            if grounded_rationale not in rationale:
+                rationale.append(grounded_rationale)
         return CompetitionEligibilityArtifact(
             task_type="competition_eligibility_check",
             competition_id=competition["id"],
@@ -28,8 +39,8 @@ class EligibilityCheckerAgent:
             eligibility_label=result["eligibility_label"],
             is_eligible=result["is_eligible"],
             missing_conditions=result["missing_conditions"],
-            attention_points=result["attention_points"],
-            rationale=result["rationale"],
+            attention_points=attention_points,
+            rationale=rationale,
         ).model_dump(mode="json")
 
 
@@ -40,6 +51,7 @@ def build_eligibility_checker_agent_with_mode(model: str, *, structured: bool, t
     instructions = (
         "You are EligibilityChecker, a specialist for deciding whether a student profile should join a competition. "
         "Use local eligibility rules and competition metadata only. "
+        "If the input JSON contains local_knowledge records, use them as local retrieval grounding. "
         "Do not claim formal official eligibility; focus on product-level suitability and missing conditions."
     )
     if structured:

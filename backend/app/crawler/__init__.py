@@ -4,7 +4,23 @@ This package is intentionally decoupled from the existing runtime, APIs, and
 frontend. It only provides a minimal placeholder structure for future work.
 """
 
-from .schemas import CrawlDocument, CrawlRequest, CrawlResult
-from .service import CrawlerService
+from .schemas import (
+    CrawlDocument,
+    CrawlRequest,
+    CrawlResult,
+    KnowledgeRecord,
+    NormalizedDocument,
+    RawDocument,
+)
+from .service import CrawlerService, LocalDocumentIngestionService
 
-__all__ = ["CrawlDocument", "CrawlRequest", "CrawlResult", "CrawlerService"]
+__all__ = [
+    "CrawlDocument",
+    "CrawlRequest",
+    "CrawlResult",
+    "CrawlerService",
+    "KnowledgeRecord",
+    "LocalDocumentIngestionService",
+    "NormalizedDocument",
+    "RawDocument",
+]

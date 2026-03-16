@@ -17,6 +17,7 @@ from app.agents.competition_recommender import (
 from app.agents.critic import CriticOutput, build_critic_agent_with_mode
 from app.agents.evidence_scout import EvidenceScoutOutput, build_evidence_scout_agent_with_mode
 from app.agents.eligibility_checker import build_eligibility_checker_agent_with_mode
+from app.agents.local_knowledge import find_local_knowledge_for_competition
 from app.agents.manager import ManagerAgentOutput, process_output_stage
 from app.agents.runtime_tools import (
     ResearchAgentContext,
@@ -172,13 +173,20 @@ class ResearchAgentFactory:
         cached = context.specialist_outputs.get("eligibility-checker")
         if isinstance(cached, CompetitionEligibilityArtifact):
             return cached
+        profile = context.task.payload.get("profile") or context.task.payload.get("user_profile") or {}
+        competition_id = int(context.task.payload.get("competition_id"))
+        local_knowledge = [
+            item.model_dump(mode="json")
+            for item in find_local_knowledge_for_competition(competition_id, profile)
+        ]
 
         input_payload = json.dumps(
             {
                 "task_id": context.task.task_id,
                 "ledger_id": context.ledger.ledger_id,
                 "competition_id": context.task.payload.get("competition_id"),
-                "profile": context.task.payload.get("profile") or context.task.payload.get("user_profile") or {},
+                "profile": profile,
+                "local_knowledge": local_knowledge,
             },
             ensure_ascii=False,
         )
