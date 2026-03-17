@@ -704,6 +704,66 @@
       "notes": "Experimental feature-flagged path that injects retrieval results into the eligibility agent without changing the main runtime flow."
     },
     {
+      "name": "crawler_source_taxonomy",
+      "layer": "crawler",
+      "status": "implemented",
+      "source_type": "crawler_contract",
+      "source_of_truth": true,
+      "persisted": false,
+      "schema_ref": "backend/app/crawler/taxonomy.py",
+      "code_refs": [
+        "backend/app/crawler/taxonomy.py",
+        "backend/app/crawler/source_manifest.py",
+        "backend/app/tests/test_phase5h_source_manifest.py"
+      ],
+      "consumers": [
+        "crawler schemas",
+        "retrieval filters",
+        "phase5h source manifest"
+      ],
+      "notes": "Defines the ten Phase 5H content categories plus the separate source-channel taxonomy and implementation-status vocabulary."
+    },
+    {
+      "name": "phase5h_source_manifest",
+      "layer": "docs",
+      "status": "implemented",
+      "source_type": "docs_manifest",
+      "source_of_truth": true,
+      "persisted": true,
+      "schema_ref": "backend/app/crawler/source_manifest.py",
+      "code_refs": [
+        "backend/app/crawler/source_manifest.py",
+        "docs/data-source-manifest.json",
+        "backend/app/tests/test_phase5h_source_manifest.py"
+      ],
+      "consumers": [
+        "phase5h build script",
+        "data source docs",
+        "taxonomy consistency tests"
+      ],
+      "notes": "Detailed source manifest for all ten categories, including source_channel, access strategy, and implemented/importer/placeholder status."
+    },
+    {
+      "name": "competition_recommender_local_knowledge_grounding",
+      "layer": "runtime",
+      "status": "partial",
+      "source_type": "feature_flagged_runtime",
+      "source_of_truth": true,
+      "persisted": false,
+      "schema_ref": "backend/app/retrieval/schemas.py",
+      "code_refs": [
+        "backend/app/agents/local_knowledge.py",
+        "backend/app/agents/competition_recommender.py",
+        "backend/app/agents/agent_factory.py",
+        "backend/app/tests/test_competition_recommender_local_knowledge.py"
+      ],
+      "consumers": [
+        "competition-recommender",
+        "ResearchAgentFactory"
+      ],
+      "notes": "Experimental feature-flagged path that injects multi-category retrieval results into the competition recommender without changing the main runtime flow."
+    },
+    {
       "name": "mysql_runtime_settings",
       "layer": "config",
       "status": "partial",

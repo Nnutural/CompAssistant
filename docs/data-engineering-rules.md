@@ -1,58 +1,67 @@
 # Data Engineering Rules
 
-This repository still prioritizes the existing competition assistant runtime. The experimental local knowledge loop must stay narrow and isolated.
+本仓库仍然优先保证现有 competition assistant 主系统稳定。Phase 5H 的数据扩展必须保持小范围、可解释、可回滚。
 
-## 1. Source-of-truth rules
+## 1. Source-of-truth 规则
 
-- Backend Pydantic models remain the source of truth for API and runtime contracts.
-- Local competition JSON datasets remain the source of truth for the existing competition tools.
-- Experimental crawler output is not a source of truth until it has been normalized into `NormalizedDocument` and indexed as `KnowledgeRecord`.
-- Agents must consume local knowledge through retrieval results only.
+- 任务 API、runtime、competition 数据契约仍以 backend Pydantic 和现有本地 JSON 为准。
+- 本地知识的数据分类和来源台账以 `backend/app/crawler/taxonomy.py` 与 `backend/app/crawler/source_manifest.py` 为代码真源。
+- `docs/data-source-manifest.json` 是文档镜像，不替代代码真源。
+- 智能体只能消费 `KnowledgeRecord` 或 `DocumentSearchHit`。
 
-## 2. Scope rules for the local knowledge loop
+## 2. Phase 5H 范围规则
 
-- Allowed in this phase:
-  public static HTTP fetches, local file storage, normalization, SQLite FTS5 indexing, retrieval service reads, one feature-flagged agent integration.
-- Explicitly out of scope:
-  Playwright, login, dynamic rendering, scheduler orchestration, queues, Redis, Celery, vector DB, RAG, WebSocket, MySQL or PostgreSQL migrations.
+本轮允许：
 
-## 3. Storage rules
+- 10 类内容类别全部进入 taxonomy / manifest / docs / code 结构
+- 公开静态 HTTP 获取
+- 本地 JSON / CSV / Markdown / TXT importer
+- 微信公众号文章手动导入
+- 文件系统存储 raw / normalized
+- SQLite + FTS5 检索
+- 第 2 个智能体的 feature-flagged retrieval 接入
 
-- Raw documents are written to the local filesystem.
-- Normalized documents are written to the local filesystem.
-- Search index uses SQLite.
-- FTS5 is the preferred path.
-- If FTS5 is unavailable, the code may fall back to a minimal LIKE-based path and must record that compatibility note.
+本轮禁止：
 
-## 4. Normalization rules
+- Playwright 作为主抓取链路
+- 登录、验证码、代理、反爬绕过
+- 多站点调度系统
+- Redis / Celery / WebSocket / 向量数据库 / RAG
+- MySQL / PostgreSQL 迁移
+- 改动 competitions API、task API、前端主流程
 
-- `RawDocument` must contain either inline raw text or a stored raw reference.
-- `NormalizedDocument` must contain cleaned text, a stable title, checksum, language, and raw reference.
-- `KnowledgeRecord.searchable_text` must be built from title, summary, content, and tags.
-- Keep fields minimal. Do not introduce future schema branches that are not consumed yet.
+## 3. 渠道与类别规则
 
-## 5. Runtime integration rules
+- `source_type` 只表示内容类别，不得混入渠道含义。
+- `source_channel` 只表示渠道，不得混入内容类别。
+- `implementation_status` 必须诚实反映 `implemented / importer / placeholder / planned`。
+- 任何未落地的来源不得伪装成 `implemented`。
 
-- Do not introduce new task types.
-- Do not refactor the research runtime manager or task flow.
-- Do not change competitions API contracts.
-- Do not change the main frontend flow.
-- Any local knowledge usage inside agents must be guarded by a feature flag.
+## 4. 存储规则
 
-## 6. Testing rules
+- `RawDocument` 落本地文件系统。
+- `NormalizedDocument` 落本地文件系统。
+- `KnowledgeRecord` 落 SQLite 索引。
+- 若 FTS5 不可用，可退化为 LIKE 检索，但必须保留兼容说明。
+- 遗留旧 schema payload 允许在读取层跳过，不得影响主流程。
 
-New local knowledge changes must keep the following tests in sync:
+## 5. 标准化规则
 
-- schema construction and validation
-- normalize pipeline behavior
-- sqlite index upsert and search
-- retrieval service read path
-- one minimal end-to-end local ingestion test
-- one minimal agent grounding test if an agent is connected
+- `RawDocument` 必须包含 `source_type`、`source_channel`、`implementation_status`。
+- `NormalizedDocument` 必须包含清洗后的 `title`、`content_text`、`checksum`、`language`。
+- `KnowledgeRecord.searchable_text` 必须由 `title + summary + content_text + tags` 构成。
+- Markdown/TXT/JSON/CSV 导入后必须走同一条标准化链路。
 
-## 7. Documentation rules
+## 6. 智能体接入规则
 
-When the local knowledge path changes, update all of the following together:
+- 智能体不得直接读网页和 raw 文件。
+- 本地知识接入必须通过 retrieval service。
+- 任何 agent grounding 必须通过 feature flag 或实验性服务边界隔离。
+- 当前允许接入的 agent 仅限 `eligibility-checker` 和 `competition-recommender`。
+
+## 7. 测试与文档同步规则
+
+当 taxonomy、source manifest、importer、retrieval 或 agent grounding 发生变化时，必须同步更新：
 
 - `docs/data-inventory.md`
 - `docs/data-sources.md`
@@ -61,3 +70,14 @@ When the local knowledge path changes, update all of the following together:
 - `docs/current-state.md`
 - `docs/ai-crawler-placeholder.md`
 - `docs/data-manifest.json`
+- `docs/data-source-manifest.json`
+
+并保持以下测试覆盖：
+
+- schema 构造/校验
+- source manifest 一致性
+- importer
+- normalize pipeline
+- sqlite index upsert/search
+- retrieval service 多类别过滤
+- 至少 2 个智能体的本地知识 grounding

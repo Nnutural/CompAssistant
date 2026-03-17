@@ -9,7 +9,9 @@ from ..schemas import RawDocument
 
 class CompetitionCatalogSource:
     source_name = "competition_catalog_static"
-    source_type = "competition"
+    source_type = "competition_info"
+    source_channel = "local_file"
+    implementation_status = "implemented"
 
     def __init__(self, data_path: str | Path | None = None) -> None:
         self.data_path = Path(data_path) if data_path else Path(__file__).resolve().parents[3] / "data" / "competitions.json"
@@ -25,7 +27,9 @@ class CompetitionCatalogSource:
                 RawDocument(
                     doc_id=f"competition-{int(item['id'])}",
                     source_type=self.source_type,
+                    source_channel=self.source_channel,
                     source_name=self.source_name,
+                    implementation_status=self.implementation_status,
                     url=url,
                     fetch_method="local_json_extract",
                     raw_content_type="application/json",
@@ -36,6 +40,7 @@ class CompetitionCatalogSource:
                         "field": item.get("field"),
                         "difficulty": item.get("difficulty"),
                         "level": item.get("level"),
+                        "tags": ["competition_info", "competition"],
                         "source_path": str(self.data_path),
                     },
                 )

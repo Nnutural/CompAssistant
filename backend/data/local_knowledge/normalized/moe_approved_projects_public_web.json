@@ -1,0 +1,45 @@
+{
+  "doc_id": "moe_approved_projects_public_web",
+  "source_type": "approved_project",
+  "source_channel": "public_web",
+  "source_name": "xjtu_approved_projects",
+  "implementation_status": "implemented",
+  "url": "https://jwc.xjtu.edu.cn/info/1216/4162.htm",
+  "title": "西安交通大学获批项目公开通知",
+  "publish_time": null,
+  "content_text": "高校公开通知页，说明创新创业训练计划项目立项结果与后续管理要求。",
+  "tags": [
+    "approved_project",
+    "public_web",
+    "xjtu_approved_projects",
+    "innovation_training",
+    "project_notice"
+  ],
+  "region": "CN",
+  "school_or_org": "Xi'an Jiaotong University",
+  "raw_ref": "raw/moe_approved_projects_public_web.json",
+  "checksum": "45f5a6c7c9c8fe5b487b2738c91ae6290233ab0c620c43fa1e0e79bb28e4b8d8",
+  "language": "zh-CN",
+  "collected_at": "2026-03-17T03:19:33.098037Z",
+  "normalized_metadata": {
+    "raw_content_type": "text/html",
+    "fetch_method": "http_get",
+    "source_channel": "public_web",
+    "implementation_status": "implemented",
+    "source_metadata": {
+      "content_length": 2329,
+      "content_type_header": "text/html; charset=utf-8",
+      "http_status": 200,
+      "title": "西安交通大学获批项目公开通知",
+      "summary": "高校公开通知页，说明创新创业训练计划项目立项结果与后续管理要求。",
+      "tags": [
+        "approved_project",
+        "innovation_training",
+        "project_notice"
+      ],
+      "region": "CN",
+      "school_or_org": "Xi'an Jiaotong University"
+    },
+    "extracted_title": "西安交通大学"
+  }
+}

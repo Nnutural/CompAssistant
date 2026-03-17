@@ -1,0 +1,24 @@
+{
+  "doc_id": "competition-2",
+  "source_type": "competition_info",
+  "source_channel": "local_file",
+  "source_name": "competition_catalog_static",
+  "implementation_status": "implemented",
+  "url": "http://www.nuedc.com.cn/",
+  "fetch_method": "local_json_extract",
+  "raw_content_type": "application/json",
+  "raw_text": "{\"id\": 2, \"name\": \"全国大学生电子设计竞赛\", \"deadline\": \"2026-08-15T18:00:00\", \"field\": \"硬件/电子\", \"difficulty\": \"困难\", \"level\": \"S\", \"description\": \"覆盖电子电路、嵌入式系统、信号处理等方向的综合性硬件竞赛。教育部高等教育司、工业和信息化部人事教育司主办。\", \"suggestions\": [\"提前准备电路设计与调试工具链\", \"强化团队硬件协作\", \"注重系统稳定性与可靠性测试\", \"准备详细的技术文档\"], \"links\": [{\"name\": \"赛事官网\", \"url\": \"http://www.nuedc.com.cn/\"}]}",
+  "raw_ref": "raw/competition-2.json",
+  "fetched_at": "2026-03-17T03:19:32.738464Z",
+  "metadata": {
+    "competition_id": 2,
+    "field": "硬件/电子",
+    "difficulty": "困难",
+    "level": "S",
+    "tags": [
+      "competition_info",
+      "competition"
+    ],
+    "source_path": "D:\\Nnutural\\Desktop\\MYPROJECT\\GROUP\\CompAssistant\\CompAssistant\\backend\\data\\competitions.json"
+  }
+}

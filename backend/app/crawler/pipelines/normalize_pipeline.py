@@ -25,7 +25,9 @@ class NormalizePipeline:
         return NormalizedDocument(
             doc_id=raw_document.doc_id,
             source_type=raw_document.source_type,
+            source_channel=raw_document.source_channel,
             source_name=raw_document.source_name,
+            implementation_status=raw_document.implementation_status,
             url=raw_document.url,
             title=title,
             publish_time=_coerce_datetime(extracted.get("publish_time") or raw_document.metadata.get("publish_time")),
@@ -47,6 +49,8 @@ class NormalizePipeline:
             normalized_metadata={
                 "raw_content_type": raw_document.raw_content_type,
                 "fetch_method": raw_document.fetch_method,
+                "source_channel": raw_document.source_channel,
+                "implementation_status": raw_document.implementation_status,
                 "source_metadata": raw_document.metadata,
                 "extracted_title": extracted["title"],
             },
@@ -68,7 +72,9 @@ class NormalizePipeline:
             summary=summary,
             content_text=normalized_document.content_text,
             source_type=normalized_document.source_type,
+            source_channel=normalized_document.source_channel,
             source_name=normalized_document.source_name,
+            implementation_status=normalized_document.implementation_status,
             tags=list(normalized_document.tags),
             publish_time=normalized_document.publish_time,
             url=normalized_document.url,
@@ -91,15 +97,29 @@ def _extract_content(raw_document: RawDocument) -> dict[str, Any]:
             "school_or_org": raw_document.metadata.get("school_or_org"),
         }
 
+    if raw_document.raw_content_type == "text/markdown":
+        return {
+            "title": _extract_markdown_title(raw_text) or raw_document.metadata.get("title"),
+            "content_text": _normalize_whitespace(_strip_markdown(raw_text)),
+            "tags": raw_document.metadata.get("tags", []),
+            "publish_time": raw_document.metadata.get("publish_time"),
+            "region": raw_document.metadata.get("region"),
+            "school_or_org": raw_document.metadata.get("school_or_org"),
+        }
+
     if "json" in raw_document.raw_content_type:
         payload = json.loads(raw_text)
         if isinstance(payload, dict):
             suggestions = payload.get("suggestions") or []
             links = payload.get("links") or []
             content_parts = [
+                payload.get("title"),
                 payload.get("description"),
                 payload.get("summary"),
                 payload.get("content"),
+                payload.get("content_text"),
+                payload.get("body"),
+                payload.get("notes"),
                 " ".join(str(item) for item in suggestions),
                 " ".join(str(item.get("name")) for item in links if isinstance(item, dict)),
             ]
@@ -109,9 +129,11 @@ def _extract_content(raw_document: RawDocument) -> dict[str, Any]:
                     payload.get("field"),
                     payload.get("difficulty"),
                     payload.get("level"),
+                    payload.get("category"),
+                    payload.get("channel"),
                     *(payload.get("tags") or []),
                 )
-                if str(value).strip()
+                if value not in (None, "") and str(value).strip()
             ]
             return {
                 "title": payload.get("title") or payload.get("name"),
@@ -119,11 +141,11 @@ def _extract_content(raw_document: RawDocument) -> dict[str, Any]:
                 "tags": tags,
                 "publish_time": payload.get("publish_time"),
                 "region": payload.get("region"),
-                "school_or_org": payload.get("school_or_org"),
+                "school_or_org": payload.get("school_or_org") or payload.get("organization"),
             }
 
     return {
-        "title": raw_document.metadata.get("title") or raw_document.url,
+        "title": raw_document.metadata.get("title") or _extract_text_title(raw_text) or raw_document.url,
         "content_text": _normalize_whitespace(raw_text),
         "tags": raw_document.metadata.get("tags", []),
         "publish_time": raw_document.metadata.get("publish_time"),
@@ -134,14 +156,23 @@ def _extract_content(raw_document: RawDocument) -> dict[str, Any]:
 
 def _normalize_title(raw_title: str | None, raw_document: RawDocument) -> str:
     if raw_title and str(raw_title).strip():
-        return _normalize_whitespace(str(raw_title))
+        normalized_raw_title = _normalize_whitespace(str(raw_title))
+        if title := raw_document.metadata.get("title"):
+            normalized_metadata_title = _normalize_whitespace(str(title))
+            if _is_low_signal_title(normalized_raw_title):
+                return normalized_metadata_title
+        return normalized_raw_title
     if title := raw_document.metadata.get("title"):
         return _normalize_whitespace(str(title))
     return raw_document.url
 
 
 def _build_tags(raw_document: RawDocument, extracted_tags: list[str] | None) -> list[str]:
-    tags: list[str] = [raw_document.source_type, raw_document.source_name]
+    tags: list[str] = [
+        raw_document.source_type,
+        raw_document.source_channel,
+        raw_document.source_name,
+    ]
     for item in extracted_tags or []:
         normalized = _normalize_whitespace(str(item))
         if normalized and normalized not in tags:
@@ -186,6 +217,37 @@ def _detect_language(content_text: str) -> str:
     if any("\u4e00" <= char <= "\u9fff" for char in content_text):
         return "zh-CN"
     return "en"
+
+
+def _is_low_signal_title(value: str) -> bool:
+    normalized = _normalize_whitespace(value)
+    return len(normalized) <= 8 and " " not in normalized and "-" not in normalized and "|" not in normalized
+
+
+def _extract_markdown_title(value: str) -> str | None:
+    for line in str(value or "").splitlines():
+        normalized = line.strip()
+        if not normalized:
+            continue
+        if normalized.startswith("#"):
+            return _normalize_whitespace(normalized.lstrip("#"))
+        return _normalize_whitespace(normalized)
+    return None
+
+
+def _strip_markdown(value: str) -> str:
+    text = re.sub(r"^#{1,6}\s*", "", str(value or ""), flags=re.MULTILINE)
+    text = re.sub(r"\[(.*?)\]\((.*?)\)", r"\1", text)
+    text = re.sub(r"[*_`>-]", " ", text)
+    return text
+
+
+def _extract_text_title(value: str) -> str | None:
+    for line in str(value or "").splitlines():
+        normalized = _normalize_whitespace(line)
+        if normalized:
+            return normalized
+    return None
 
 
 class _HTMLContentParser(HTMLParser):

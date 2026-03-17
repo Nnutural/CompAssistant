@@ -26,9 +26,11 @@ class RetrievalServiceTests(unittest.TestCase):
                     title="National Innovation Challenge",
                     summary="Competition briefing and preparation tips.",
                     content_text="Innovation challenge competition briefing and team preparation guidance.",
-                    source_type="competition",
+                    source_type="competition_info",
+                    source_channel="local_file",
                     source_name="competition-catalog-static",
-                    tags=["competition", "innovation"],
+                    implementation_status="implemented",
+                    tags=["competition_info", "innovation"],
                     publish_time=datetime.now(timezone.utc),
                     url="https://example.com/competition",
                     searchable_text="National Innovation Challenge competition briefing and team preparation guidance.",
@@ -36,12 +38,17 @@ class RetrievalServiceTests(unittest.TestCase):
                 )
             )
 
-            hits = service.search_documents("innovation challenge", filters={"source_type": "competition"}, top_k=2)
+            hits = service.search_documents(
+                "innovation challenge",
+                filters={"source_type": "competition_info", "source_channel": "local_file"},
+                top_k=2,
+            )
             loaded = get_document("knowledge-competition-001", service=service)
             hits_via_function = search_documents("innovation", service=service)
 
             self.assertEqual(len(hits), 1)
-            self.assertEqual(hits[0].source_type, "competition")
+            self.assertEqual(hits[0].source_type, "competition_info")
+            self.assertEqual(hits[0].source_channel, "local_file")
             self.assertIsNotNone(loaded)
             self.assertEqual(loaded.doc_id, "competition-001")
             self.assertEqual(hits_via_function[0].record_id, "knowledge-competition-001")

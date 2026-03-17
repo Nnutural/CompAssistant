@@ -5,8 +5,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-
-DocumentSourceType = Literal["policy", "competition"]
+from .taxonomy import DocumentSourceType, SourceChannelType, SourceImplementationStatus
 
 
 class CrawlerBaseModel(BaseModel):
@@ -58,7 +57,9 @@ class CrawlResult(CrawlerBaseModel):
 class RawDocument(CrawlerBaseModel):
     doc_id: str = Field(min_length=1)
     source_type: DocumentSourceType
+    source_channel: SourceChannelType
     source_name: str = Field(min_length=1)
+    implementation_status: SourceImplementationStatus
     url: str = Field(min_length=1)
     fetch_method: str = Field(min_length=1)
     raw_content_type: str = Field(min_length=1)
@@ -90,7 +91,9 @@ class RawDocument(CrawlerBaseModel):
 class NormalizedDocument(CrawlerBaseModel):
     doc_id: str = Field(min_length=1)
     source_type: DocumentSourceType
+    source_channel: SourceChannelType
     source_name: str = Field(min_length=1)
+    implementation_status: SourceImplementationStatus
     url: str = Field(min_length=1)
     title: str = Field(min_length=1)
     publish_time: datetime | None = None
@@ -132,7 +135,9 @@ class KnowledgeRecord(CrawlerBaseModel):
     summary: str = ""
     content_text: str = Field(min_length=1)
     source_type: DocumentSourceType
+    source_channel: SourceChannelType
     source_name: str = Field(min_length=1)
+    implementation_status: SourceImplementationStatus
     tags: list[str] = Field(default_factory=list)
     publish_time: datetime | None = None
     url: str = Field(min_length=1)

@@ -1,0 +1,42 @@
+{
+  "doc_id": "experience-sharing-1c72cfc465de",
+  "source_type": "experience_sharing",
+  "source_channel": "local_file",
+  "source_name": "experience_sharing_curated",
+  "implementation_status": "importer",
+  "url": "local://experience_sharing.txt",
+  "title": "竞赛准备经验分享：从选题到初赛答辩",
+  "publish_time": null,
+  "content_text": "竞赛准备经验分享：从选题到初赛答辩 先确定一个真实问题，再反推需要的数据、原型和团队分工。准备阶段不要一开始就追求全功能原型，先做可展示的最小闭环。初赛答辩时重点回答为什么做、怎么验证、结果有什么价值。",
+  "tags": [
+    "experience_sharing",
+    "local_file",
+    "experience_sharing_curated",
+    "experience",
+    "pitch",
+    "preparation"
+  ],
+  "region": "CN",
+  "school_or_org": "CompAssistant Curated Desk",
+  "raw_ref": "raw/experience-sharing-1c72cfc465de.json",
+  "checksum": "9a9f945d8646d4e0afc5c24d340e5686611fb512d603e50058c0c7f6ee8a24a1",
+  "language": "zh-CN",
+  "collected_at": "2026-03-17T03:19:33.527446Z",
+  "normalized_metadata": {
+    "raw_content_type": "text/plain",
+    "fetch_method": "manual_file_import",
+    "source_channel": "local_file",
+    "implementation_status": "importer",
+    "source_metadata": {
+      "source_path": "D:\\Nnutural\\Desktop\\MYPROJECT\\GROUP\\CompAssistant\\CompAssistant\\backend\\data\\local_knowledge_imports\\phase5h\\experience_sharing.txt",
+      "tags": [
+        "experience",
+        "pitch",
+        "preparation"
+      ],
+      "school_or_org": "CompAssistant Curated Desk",
+      "region": "CN"
+    },
+    "extracted_title": "竞赛准备经验分享：从选题到初赛答辩"
+  }
+}

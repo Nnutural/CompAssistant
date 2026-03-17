@@ -1,0 +1,43 @@
+{
+  "doc_id": "excellent-template-0252a3f97677",
+  "source_type": "excellent_template",
+  "source_channel": "local_file",
+  "source_name": "excellent_template_curated",
+  "implementation_status": "importer",
+  "url": "local://excellent_template.md",
+  "title": "省级竞赛立项书模板",
+  "publish_time": null,
+  "content_text": "省级竞赛立项书模板 适用场景 适用于需要快速整理项目目标、创新点、分工和时间安排的大学生竞赛申报材料。 模板结构 1. 项目背景与痛点 2. 解决方案与创新点 3. 实施路径与阶段目标 4. 团队分工与资源需求 5. 风险识别与备选方案 使用提示 先把问题定义写清楚，再展开技术细节。 用 3 到 5 条可验证里程碑替代空泛目标。 路演稿和书面模板保持核心叙事一致。",
+  "tags": [
+    "excellent_template",
+    "local_file",
+    "excellent_template_curated",
+    "template",
+    "proposal",
+    "competition"
+  ],
+  "region": "CN",
+  "school_or_org": "CompAssistant Curated Desk",
+  "raw_ref": "raw/excellent-template-0252a3f97677.json",
+  "checksum": "c415a318beedde8db8a238ba52d4a23fc5ed92298f2dab6c9b484fcef557d251",
+  "language": "zh-CN",
+  "collected_at": "2026-03-17T03:19:33.497340Z",
+  "normalized_metadata": {
+    "raw_content_type": "text/markdown",
+    "fetch_method": "manual_file_import",
+    "source_channel": "local_file",
+    "implementation_status": "importer",
+    "source_metadata": {
+      "source_path": "D:\\Nnutural\\Desktop\\MYPROJECT\\GROUP\\CompAssistant\\CompAssistant\\backend\\data\\local_knowledge_imports\\phase5h\\excellent_template.md",
+      "title": "省级竞赛立项书模板",
+      "tags": [
+        "template",
+        "proposal",
+        "competition"
+      ],
+      "school_or_org": "CompAssistant Curated Desk",
+      "region": "CN"
+    },
+    "extracted_title": "省级竞赛立项书模板"
+  }
+}

@@ -59,6 +59,8 @@ class DataManifestTests(unittest.TestCase):
         self.assertIn("research_ledger", names)
         self.assertIn("agent_task_create_request", names)
         self.assertIn("crawler_placeholder_contracts", names)
+        self.assertIn("crawler_source_taxonomy", names)
+        self.assertIn("phase5h_source_manifest", names)
 
 
 if __name__ == "__main__":

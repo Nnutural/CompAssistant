@@ -40,7 +40,7 @@ class LocalKnowledgeIntegrationTests(unittest.TestCase):
             server, base_url = _start_static_server(fixture_dir)
             try:
                 policy_raw = provider.fetch_document(
-                    source_type="policy",
+                    source_type="national_policy",
                     source_name="gov-policy-demo",
                     url=f"{base_url}/policy_sample.html",
                     metadata={"tags": ["policy", "competition"], "region": "CN", "school_or_org": "MOE"},
@@ -59,7 +59,7 @@ class LocalKnowledgeIntegrationTests(unittest.TestCase):
 
             hits = index_store.search_documents("competition policy", top_k=5)
             self.assertGreaterEqual(len(hits), 1)
-            self.assertTrue(any(hit.source_type == "policy" for hit in hits))
+            self.assertTrue(any(hit.source_type == "national_policy" for hit in hits))
 
 
 def _start_static_server(directory: Path) -> tuple[ThreadingHTTPServer, str]:

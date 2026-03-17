@@ -1,0 +1,18 @@
+[
+  {
+    "doc_id": "social-hotspot-ai-employment-001",
+    "title": "人工智能与大学生就业讨论观察",
+    "summary": "整理近期围绕人工智能、岗位重构和大学生能力迁移的热点讨论。",
+    "content_text": "人工整理观点显示，高校学生在关注人工智能带来的岗位变化时，更关心跨学科能力、项目经历和公开作品集。该条目作为社会热点类示例，供规划和推荐场景检索。",
+    "tags": [
+      "social_hotspot",
+      "ai",
+      "employment",
+      "project_portfolio"
+    ],
+    "publish_time": "2026-03-01",
+    "url": "manual://social-hotspot/ai-employment",
+    "region": "CN",
+    "school_or_org": "CompAssistant Curated Desk"
+  }
+]

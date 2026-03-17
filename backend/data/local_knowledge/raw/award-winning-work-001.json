@@ -1,0 +1,16 @@
+{
+  "doc_id": "award-winning-work-001",
+  "source_type": "award_winning_work",
+  "source_channel": "manual_import",
+  "source_name": "award_winning_works_curated",
+  "implementation_status": "importer",
+  "url": "manual://award-winning-work/001",
+  "fetch_method": "manual_structured_import",
+  "raw_content_type": "application/json",
+  "raw_text": "{\"doc_id\": \"award-winning-work-001\", \"title\": \"全国大学生创新作品案例：智慧校园能耗优化\", \"summary\": \"获奖作品示例，强调问题定义、数据采集和路演表达。\", \"content_text\": \"该案例围绕智慧校园能耗优化，提交材料包含问题背景、数据采集流程、实验验证和展示答辩要点。适合作为竞赛推荐和模板学习的本地参考。\", \"tags\": [\"award_winning_work\", \"innovation\", \"campus_data\"], \"publish_time\": \"2025-12-10\", \"url\": \"manual://award-winning-work/001\", \"region\": \"CN\", \"school_or_org\": \"CompAssistant Curated Desk\"}",
+  "raw_ref": "raw/award-winning-work-001.json",
+  "fetched_at": "2026-03-17T03:19:32.738970Z",
+  "metadata": {
+    "source_path": "D:\\Nnutural\\Desktop\\MYPROJECT\\GROUP\\CompAssistant\\CompAssistant\\backend\\data\\local_knowledge_imports\\phase5h\\award_winning_works.csv"
+  }
+}

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from app.agents.local_knowledge import find_local_knowledge_for_recommendation
 from app.agents.schema_adapter import build_provider_output_schema
 from app.schemas.research_runtime import AgentTaskEnvelope, CompetitionRecommendationArtifact, ResearchLedger
 from app.tools import (
@@ -20,6 +21,7 @@ class CompetitionRecommenderAgent:
     def run(self, task: AgentTaskEnvelope, ledger: ResearchLedger) -> dict:
         profile = _resolve_profile(task.payload)
         filtered = unwrap_tool_result(filter_competitions_by_profile(profile), "filter_competitions_by_profile")
+        local_knowledge = find_local_knowledge_for_recommendation(profile)
 
         recommendations: list[dict] = []
         aggregated_risks: list[str] = []
@@ -30,17 +32,26 @@ class CompetitionRecommenderAgent:
                 compose_recommendation_rationale(competition, scoring),
                 "compose_recommendation_rationale",
             )
+            reasons = list(rationale["reasons"])
+            for hit in local_knowledge[:2]:
+                reference_note = f"Local knowledge: {hit.title} [{hit.source_type}]"
+                if reference_note not in reasons:
+                    reasons.append(reference_note)
             recommendations.append(
                 {
                     "competition_id": competition["id"],
                     "competition_name": competition["name"],
                     "match_score": scoring["total_score"],
-                    "reasons": rationale["reasons"],
+                    "reasons": reasons,
                     "risk_notes": rationale["risk_notes"],
                     "focus_tags": competition.get("enriched", {}).get("focus_tags", [])[:4],
                 }
             )
             aggregated_risks.extend(rationale["risk_notes"])
+        for hit in local_knowledge[:3]:
+            local_note = f"Local grounding used: {hit.title} ({hit.source_type})"
+            if local_note not in aggregated_risks:
+                aggregated_risks.append(local_note)
 
         return CompetitionRecommendationArtifact(
             task_type="competition_recommendation",
@@ -57,6 +68,7 @@ def build_competition_recommender_agent_with_mode(model: str, *, structured: boo
     instructions = (
         "You are CompetitionRecommender, a specialist for university competition recommendation. "
         "Use the local competition filtering tool as grounding. "
+        "If the input JSON includes local_knowledge records, use them as local retrieval grounding. "
         "Keep the output short, practical, and product-oriented. "
         "Do not invent competitions or external data."
     )
@@ -102,4 +114,4 @@ def _resolve_profile(payload: dict) -> dict:
 def _profile_summary(profile: dict, topic: str) -> str:
     direction = profile.get("direction") or profile.get("field") or topic
     grade = profile.get("grade") or "freshman"
-    return f"方向={direction}; 年级={grade}; 能力标签={len(profile.get('ability_tags', []))} 个"
+    return f"direction={direction}; grade={grade}; ability_tags={len(profile.get('ability_tags', []))}"

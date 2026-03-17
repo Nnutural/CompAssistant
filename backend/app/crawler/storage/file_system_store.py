@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from pydantic import ValidationError
+
 from ..schemas import NormalizedDocument, RawDocument
 
 
@@ -34,7 +36,10 @@ class FileSystemDocumentStore:
         documents: list[NormalizedDocument] = []
         for path in sorted(self.normalized_dir.glob("*.json")):
             with path.open("r", encoding="utf-8") as handle:
-                documents.append(NormalizedDocument.model_validate(json.load(handle)))
+                try:
+                    documents.append(NormalizedDocument.model_validate(json.load(handle)))
+                except ValidationError:
+                    continue
         return documents
 
     def _relative_path(self, path: Path) -> str:

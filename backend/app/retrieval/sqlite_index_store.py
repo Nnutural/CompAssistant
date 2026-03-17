@@ -5,6 +5,8 @@ import json
 import sqlite3
 from pathlib import Path
 
+from pydantic import ValidationError
+
 from app.crawler.schemas import KnowledgeRecord
 
 from .schemas import DocumentSearchFilters, DocumentSearchHit
@@ -32,21 +34,25 @@ class SQLiteIndexStore:
                     summary,
                     content_text,
                     source_type,
+                    source_channel,
                     source_name,
+                    implementation_status,
                     tags_json,
                     publish_time,
                     url,
                     searchable_text,
                     indexed_at,
                     payload_json
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(record_id) DO UPDATE SET
                     doc_id=excluded.doc_id,
                     title=excluded.title,
                     summary=excluded.summary,
                     content_text=excluded.content_text,
                     source_type=excluded.source_type,
+                    source_channel=excluded.source_channel,
                     source_name=excluded.source_name,
+                    implementation_status=excluded.implementation_status,
                     tags_json=excluded.tags_json,
                     publish_time=excluded.publish_time,
                     url=excluded.url,
@@ -61,7 +67,9 @@ class SQLiteIndexStore:
                     record.summary,
                     record.content_text,
                     record.source_type,
+                    record.source_channel,
                     record.source_name,
+                    record.implementation_status,
                     tags_json,
                     record.publish_time.isoformat() if record.publish_time else None,
                     record.url,
@@ -129,7 +137,9 @@ class SQLiteIndexStore:
 
         hits: list[DocumentSearchHit] = []
         for row in rows:
-            record = KnowledgeRecord.model_validate(json.loads(row["payload_json"]))
+            record = _safe_load_record(row["payload_json"])
+            if record is None:
+                continue
             if normalized_filters.tags and not set(normalized_filters.tags).issubset(set(record.tags)):
                 continue
             hits.append(
@@ -139,7 +149,9 @@ class SQLiteIndexStore:
                     title=record.title,
                     summary=record.summary,
                     source_type=record.source_type,
+                    source_channel=record.source_channel,
                     source_name=record.source_name,
+                    implementation_status=record.implementation_status,
                     tags=list(record.tags),
                     publish_time=record.publish_time,
                     url=record.url,
@@ -161,7 +173,7 @@ class SQLiteIndexStore:
             ).fetchone()
         if row is None:
             return None
-        return KnowledgeRecord.model_validate(json.loads(row["payload_json"]))
+        return _safe_load_record(row["payload_json"])
 
     def get_compatibility_notes(self) -> list[str]:
         with closing(self._connect()) as connection:
@@ -181,7 +193,9 @@ class SQLiteIndexStore:
                     summary TEXT NOT NULL,
                     content_text TEXT NOT NULL,
                     source_type TEXT NOT NULL,
+                    source_channel TEXT NOT NULL,
                     source_name TEXT NOT NULL,
+                    implementation_status TEXT NOT NULL,
                     tags_json TEXT NOT NULL,
                     publish_time TEXT,
                     url TEXT NOT NULL,
@@ -191,6 +205,8 @@ class SQLiteIndexStore:
                 )
                 """
             )
+            _ensure_column(connection, "knowledge_records", "source_channel", "TEXT NOT NULL DEFAULT 'public_web'")
+            _ensure_column(connection, "knowledge_records", "implementation_status", "TEXT NOT NULL DEFAULT 'implemented'")
             connection.execute(
                 """
                 CREATE TABLE IF NOT EXISTS knowledge_index_compatibility (
@@ -234,9 +250,26 @@ def _build_sql_filters(filters: DocumentSearchFilters) -> tuple[str, list[str]]:
     if filters.source_type:
         clauses.append("AND kr.source_type = ?")
         parameters.append(filters.source_type)
+    if filters.source_types:
+        clauses.append(f"AND kr.source_type IN ({','.join('?' for _ in filters.source_types)})")
+        parameters.extend(filters.source_types)
+    if filters.source_channel:
+        clauses.append("AND kr.source_channel = ?")
+        parameters.append(filters.source_channel)
+    if filters.source_channels:
+        clauses.append(f"AND kr.source_channel IN ({','.join('?' for _ in filters.source_channels)})")
+        parameters.extend(filters.source_channels)
     if filters.source_name:
         clauses.append("AND kr.source_name = ?")
         parameters.append(filters.source_name)
+    if filters.implementation_status:
+        clauses.append("AND kr.implementation_status = ?")
+        parameters.append(filters.implementation_status)
+    if filters.implementation_statuses:
+        clauses.append(
+            f"AND kr.implementation_status IN ({','.join('?' for _ in filters.implementation_statuses)})"
+        )
+        parameters.extend(filters.implementation_statuses)
     return f" {' '.join(clauses)}" if clauses else "", parameters
 
 
@@ -245,3 +278,18 @@ def _to_fts_query(query: str) -> str:
     if not terms:
         return query
     return " OR ".join(f'"{term.replace("\"", "")}"' for term in terms)
+
+
+def _ensure_column(connection: sqlite3.Connection, table_name: str, column_name: str, definition: str) -> None:
+    rows = connection.execute(f"PRAGMA table_info({table_name})").fetchall()
+    existing_columns = {str(row["name"]) for row in rows}
+    if column_name not in existing_columns:
+        connection.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {definition}")
+
+
+def _safe_load_record(payload_json: str) -> KnowledgeRecord | None:
+    try:
+        payload = json.loads(payload_json)
+        return KnowledgeRecord.model_validate(payload)
+    except (json.JSONDecodeError, ValidationError):
+        return None

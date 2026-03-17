@@ -1,0 +1,43 @@
+{
+  "doc_id": "competition-3",
+  "source_type": "competition_info",
+  "source_channel": "local_file",
+  "source_name": "competition_catalog_static",
+  "implementation_status": "implemented",
+  "url": "https://icpc.global/",
+  "title": "国际大学生程序设计竞赛世界总决赛",
+  "publish_time": null,
+  "content_text": "顶级程序设计赛事，强调算法、数据结构和团队协作。由国际计算机协会（ACM）主办的全球最顶尖的大学生程序设计竞赛。 每周固定训练赛，保持竞技状态 重视题目复盘与错题整理 强化团队配合与时间管理 掌握常见算法模板 赛事官网",
+  "tags": [
+    "competition_info",
+    "local_file",
+    "competition_catalog_static",
+    "算法/编程",
+    "困难",
+    "S"
+  ],
+  "region": null,
+  "school_or_org": null,
+  "raw_ref": "raw/competition-3.json",
+  "checksum": "b2113ba8d3368b0dd4b576c0e139d10453b4895c04256edc28fdbed55464469b",
+  "language": "zh-CN",
+  "collected_at": "2026-03-17T03:19:33.280787Z",
+  "normalized_metadata": {
+    "raw_content_type": "application/json",
+    "fetch_method": "local_json_extract",
+    "source_channel": "local_file",
+    "implementation_status": "implemented",
+    "source_metadata": {
+      "competition_id": 3,
+      "field": "算法/编程",
+      "difficulty": "困难",
+      "level": "S",
+      "tags": [
+        "competition_info",
+        "competition"
+      ],
+      "source_path": "D:\\Nnutural\\Desktop\\MYPROJECT\\GROUP\\CompAssistant\\CompAssistant\\backend\\data\\competitions.json"
+    },
+    "extracted_title": "国际大学生程序设计竞赛世界总决赛"
+  }
+}

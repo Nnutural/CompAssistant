@@ -12,6 +12,7 @@ from .schemas import (
     NormalizedDocument,
     RawDocument,
 )
+from .source_manifest import SourceManifestEntry, list_source_manifest_entries
 from .service import CrawlerService, LocalDocumentIngestionService
 
 __all__ = [
@@ -23,4 +24,6 @@ __all__ = [
     "LocalDocumentIngestionService",
     "NormalizedDocument",
     "RawDocument",
+    "SourceManifestEntry",
+    "list_source_manifest_entries",
 ]

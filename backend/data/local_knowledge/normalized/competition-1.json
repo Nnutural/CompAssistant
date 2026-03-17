@@ -1,13 +1,16 @@
 {
   "doc_id": "competition-1",
-  "source_type": "competition",
+  "source_type": "competition_info",
+  "source_channel": "local_file",
   "source_name": "competition_catalog_static",
+  "implementation_status": "implemented",
   "url": "https://cy.ncss.cn/",
   "title": "中国国际互联网+大学生创新创业大赛",
   "publish_time": null,
   "content_text": "面向全国高校学生的创新创业赛事，强调创新性、商业价值与社会影响力。是教育部主办的国家级最高水平创新创业赛事。 尽早完成项目打磨，注重商业模式可行性 准备可验证的用户与市场数据 完善商业计划书和路演展示 关注社会价值与创新性 赛事官网",
   "tags": [
-    "competition",
+    "competition_info",
+    "local_file",
     "competition_catalog_static",
     "综合/创新创业",
     "困难",
@@ -18,15 +21,21 @@
   "raw_ref": "raw/competition-1.json",
   "checksum": "de8d8e56171988b4dd1a60bb0ed8676d3e3d83981a7dfc0fecb3fa5eee237b95",
   "language": "zh-CN",
-  "collected_at": "2026-03-16T00:49:00.321418Z",
+  "collected_at": "2026-03-17T03:19:33.230548Z",
   "normalized_metadata": {
     "raw_content_type": "application/json",
     "fetch_method": "local_json_extract",
+    "source_channel": "local_file",
+    "implementation_status": "implemented",
     "source_metadata": {
       "competition_id": 1,
       "field": "综合/创新创业",
       "difficulty": "困难",
       "level": "S",
+      "tags": [
+        "competition_info",
+        "competition"
+      ],
       "source_path": "D:\\Nnutural\\Desktop\\MYPROJECT\\GROUP\\CompAssistant\\CompAssistant\\backend\\data\\competitions.json"
     },
     "extracted_title": "中国国际互联网+大学生创新创业大赛"

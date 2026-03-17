@@ -1,0 +1,42 @@
+{
+  "doc_id": "wechat-article-experience-608befd27d50",
+  "source_type": "experience_sharing",
+  "source_channel": "wechat_official_account",
+  "source_name": "wechat_experience_article",
+  "implementation_status": "importer",
+  "url": "local://wechat_article_experience.md",
+  "title": "公众号文章导入示例：导师如何看项目叙事",
+  "publish_time": null,
+  "content_text": "公众号文章导入示例：导师如何看项目叙事 这是一篇通过手动导入进入本地知识库的公众号文章示例，不代表自动抓取能力。 文章内容强调，优秀竞赛项目需要把用户问题、方案路径、验证结果和团队执行力讲成一条连贯故事线。对于推荐类和规划类智能体，这类经验分享更适合作为辅助参考，而不是硬性规则。",
+  "tags": [
+    "experience_sharing",
+    "wechat_official_account",
+    "wechat_experience_article",
+    "wechat",
+    "experience",
+    "storytelling"
+  ],
+  "region": "CN",
+  "school_or_org": "Manual WeChat Import",
+  "raw_ref": "raw/wechat-article-experience-608befd27d50.json",
+  "checksum": "9909b5c3e49edb7ad646a9445aa19ece1b227d13c849e9e8208dcdfd0d42787c",
+  "language": "zh-CN",
+  "collected_at": "2026-03-17T03:19:33.577707Z",
+  "normalized_metadata": {
+    "raw_content_type": "text/markdown",
+    "fetch_method": "manual_file_import",
+    "source_channel": "wechat_official_account",
+    "implementation_status": "importer",
+    "source_metadata": {
+      "source_path": "D:\\Nnutural\\Desktop\\MYPROJECT\\GROUP\\CompAssistant\\CompAssistant\\backend\\data\\local_knowledge_imports\\phase5h\\wechat_article_experience.md",
+      "tags": [
+        "wechat",
+        "experience",
+        "storytelling"
+      ],
+      "school_or_org": "Manual WeChat Import",
+      "region": "CN"
+    },
+    "extracted_title": "公众号文章导入示例：导师如何看项目叙事"
+  }
+}

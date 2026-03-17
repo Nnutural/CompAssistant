@@ -20,8 +20,10 @@ class NormalizePipelineTests(unittest.TestCase):
     def test_html_document_is_normalized(self) -> None:
         raw_document = RawDocument(
             doc_id="policy-001",
-            source_type="policy",
+            source_type="national_policy",
+            source_channel="public_web",
             source_name="gov-policy-demo",
+            implementation_status="implemented",
             url="https://example.com/policy",
             fetch_method="http_get",
             raw_content_type="text/html",
@@ -39,16 +41,19 @@ class NormalizePipelineTests(unittest.TestCase):
 
         self.assertEqual(normalized.title, "Innovation Policy")
         self.assertIn("Students must complete registration.", normalized.content_text)
-        self.assertEqual(normalized.source_type, "policy")
-        self.assertIn("policy", normalized.tags)
+        self.assertEqual(normalized.source_type, "national_policy")
+        self.assertEqual(normalized.source_channel, "public_web")
+        self.assertIn("national_policy", normalized.tags)
         self.assertEqual(record.record_id, "knowledge-policy-001")
         self.assertIn("Innovation Policy", record.searchable_text)
 
     def test_json_competition_document_is_normalized(self) -> None:
         raw_document = RawDocument(
             doc_id="competition-001",
-            source_type="competition",
+            source_type="competition_info",
+            source_channel="local_file",
             source_name="competition-catalog-static",
+            implementation_status="implemented",
             url="https://example.com/competition",
             fetch_method="local_json_extract",
             raw_content_type="application/json",
@@ -71,6 +76,8 @@ class NormalizePipelineTests(unittest.TestCase):
 
         self.assertEqual(normalized.title, "National Innovation Challenge")
         self.assertIn("Form a team", normalized.content_text)
+        self.assertEqual(normalized.source_type, "competition_info")
+        self.assertEqual(normalized.source_channel, "local_file")
         self.assertIn("innovation", normalized.tags)
 
 

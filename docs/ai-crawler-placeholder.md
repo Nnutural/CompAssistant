@@ -1,48 +1,45 @@
 # AI Crawler Placeholder
 
-This repository no longer has a crawler scaffold that is purely empty. It now has a minimal experimental local knowledge loop.
+仓库当前已经不是“纯空壳 crawler scaffold”，但也还远没有变成完整 crawler 平台。
 
-## What is implemented now
+## 当前已经实现的最小能力
 
-- strict document schemas:
-  `RawDocument`, `NormalizedDocument`, `KnowledgeRecord`
-- one public static HTTP provider
-- one normalization pipeline
-- filesystem persistence for raw and normalized documents
-- SQLite local index with FTS5 when available
-- retrieval service used by one feature-flagged agent path
+- 10 类内容类别 taxonomy
+- 渠道层 taxonomy
+- source manifest
+- 严格三层 schema：
+  `RawDocument` / `NormalizedDocument` / `KnowledgeRecord`
+- 公开静态 HTTP provider
+- JSON / CSV / Markdown / TXT importer
+- 微信公众号文章手动导入器
+- 文件系统 raw / normalized 存储
+- SQLite + FTS5 本地索引
+- retrieval service
+- 2 个 feature-flagged agent grounding 路径
 
-## What is still intentionally not implemented
+## 当前明确没有实现的能力
 
-- browser automation
-- login flows
-- CAPTCHA or anti-bot bypass
-- multi-site orchestration
-- scheduling
-- proxy rotation
-- generic crawler platform abstractions
-- runtime-wide crawler integration
-- frontend crawler UI
+- 通用多站点 crawler 平台
+- 调度与增量抓取
+- Playwright 动态渲染抓取主线
+- 登录、验证码、代理、反爬绕过
+- 公众号自动抓取
+- 前端 crawler UI
+- 将 crawler 直接并入主 runtime 主路径
 
-## Current integration boundary
+## 当前真实边界
 
-- The crawler path is still experimental.
-- It is not wired into the public API surface.
-- It does not change the main runtime flow.
-- Only the `eligibility-checker` gets optional local knowledge grounding, and only through retrieval results.
+- crawler / retrieval 仍是实验性服务边界
+- 只抓公开静态页面
+- 难源优先通过 importer 进入体系
+- 智能体只读 retrieval 结果
+- placeholder 仍然是 placeholder，不会伪装成 implemented
 
-## Storage boundary
+## 未来扩展顺序
 
-- raw and normalized documents go to the local filesystem
-- searchable knowledge goes to SQLite
-- agents do not read raw crawler files directly
+如果后续继续做 crawler，只能按以下顺序扩：
 
-## Future direction
-
-If crawler work expands later, keep the rollout order narrow:
-
-1. one source
-2. one validation path
-3. one retrieval consumer
-
-Only after that should the project consider a broader crawler platform.
+1. 单个来源适配
+2. 单个验证路径
+3. 单个 retrieval 消费者
+4. 再考虑更广的 crawler 平台能力

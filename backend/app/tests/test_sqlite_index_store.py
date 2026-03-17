@@ -23,9 +23,11 @@ class SQLiteIndexStoreTests(unittest.TestCase):
                 title="Innovation Competition Policy",
                 summary="Registration and eligibility guidance.",
                 content_text="Innovation competition registration policy and eligibility rules.",
-                source_type="policy",
+                source_type="national_policy",
+                source_channel="public_web",
                 source_name="gov-policy-demo",
-                tags=["policy", "competition"],
+                implementation_status="implemented",
+                tags=["national_policy", "competition_info"],
                 publish_time=datetime.now(timezone.utc),
                 url="https://example.com/policy",
                 searchable_text="Innovation Competition Policy Registration and eligibility guidance.",
@@ -40,6 +42,7 @@ class SQLiteIndexStoreTests(unittest.TestCase):
             self.assertEqual(hits[0].record_id, "knowledge-policy-001")
             self.assertIsNotNone(loaded)
             self.assertEqual(loaded.title, "Innovation Competition Policy")
+            self.assertEqual(hits[0].source_channel, "public_web")
 
 
 if __name__ == "__main__":
